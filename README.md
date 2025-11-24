@@ -23,7 +23,6 @@ While the core features for fitting clothing (Mesh Deformation, Bone Transformat
     *   **OpenFitter Converter**: A standalone Editor Window to convert clothing prefabs.
         *   Applies RBF deformation to meshes.
         *   Applies Bone Pose transformation to the armature.
-        *   **Auto Re-binding**: Recalculates BindPoses to ensure the mesh retains its fitted shape without double-deformation artifacts.
         *   **Asset Saving**: Automatically saves deformed meshes and creates a ready-to-use Prefab.
 
 ## Installation
@@ -102,7 +101,6 @@ Nine Gatesによって公開されたGPL-3コアロジックに基づき、OpenF
     *   **OpenFitter Converter**: 衣装プレハブを変換するための独立したエディタウィンドウです。
         *   メッシュへのRBF変形の適用
         *   アーマチュアへのボーンポーズ変形の適用
-        *   **自動再バインド**: 二重変形によるアーティファクトを防ぎ、メッシュがフィットした形状を維持するようにBindPoseを再計算します。
         *   **アセット保存**: 変形されたメッシュを自動的に保存し、すぐに使用可能なプレハブを作成します。
 
 ## インストール
