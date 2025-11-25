@@ -25,10 +25,13 @@ using Newtonsoft.Json;
 public class RBFShapeKeyData
 {
     public string name;
+    public float weight; // 50.0 or 100.0
     public float epsilon;
     public List<List<float>> centers;
     public List<List<float>> weights;
     public List<List<float>> poly_weights;
+    public List<float> bounds_min; // [x, y, z]
+    public List<float> bounds_max; // [x, y, z]
 }
 
 [System.Serializable]
@@ -75,10 +78,14 @@ public class RBFDeformer : MonoBehaviour
     private class RBFShapeKeyRuntimeData
     {
         public string name;
+        public float weight;
         public float epsilon;
         public NativeArray<float3> centers;
         public NativeArray<float3> weights;
         public NativeArray<float3> polyWeights;
+        public float3 boundsMin;
+        public float3 boundsMax;
+        public bool useBounds;
     }
 
     // コンポーネント削除時やスクリプト再コンパイル時にメモリを解放
@@ -251,13 +258,56 @@ public class RBFDeformer : MonoBehaviour
                     skPolyArr[2] = skOldRow3;
                     skPolyArr[3] = -skOldRow2;
 
+                    // Parse Bounds if available
+                    float3 bMin = new float3(float.MinValue, float.MinValue, float.MinValue);
+                    float3 bMax = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
+                    bool useBounds = false;
+
+                    if (skData.bounds_min != null && skData.bounds_max != null && skData.bounds_min.Count == 3)
+                    {
+                        // Convert Bounds to Unity Space
+                        // Blender (x, y, z) -> Unity (-x, z, -y)
+                        // Since we are flipping axes, Min/Max relationships might swap.
+                        // We need to transform the corners of the AABB and re-compute the AABB in Unity space.
+                        
+                        Vector3[] corners = new Vector3[8];
+                        float bx1 = skData.bounds_min[0]; float by1 = skData.bounds_min[1]; float bz1 = skData.bounds_min[2];
+                        float bx2 = skData.bounds_max[0]; float by2 = skData.bounds_max[1]; float bz2 = skData.bounds_max[2];
+                        
+                        corners[0] = new Vector3(-bx1, bz1, -by1);
+                        corners[1] = new Vector3(-bx2, bz1, -by1);
+                        corners[2] = new Vector3(-bx1, bz2, -by1);
+                        corners[3] = new Vector3(-bx2, bz2, -by1);
+                        corners[4] = new Vector3(-bx1, bz1, -by2);
+                        corners[5] = new Vector3(-bx2, bz1, -by2);
+                        corners[6] = new Vector3(-bx1, bz2, -by2);
+                        corners[7] = new Vector3(-bx2, bz2, -by2);
+                        
+                        Vector3 minV = corners[0];
+                        Vector3 maxV = corners[0];
+                        
+                        foreach(var v in corners)
+                        {
+                            minV = Vector3.Min(minV, v);
+                            maxV = Vector3.Max(maxV, v);
+                        }
+                        
+                        bMin = minV;
+                        bMax = maxV;
+                        useBounds = true;
+                    }
+
                     var runtimeData = new RBFShapeKeyRuntimeData
                     {
                         name = skData.name,
+                        weight = skData.weight > 0 ? skData.weight : 100f, // Default to 100 if missing
                         epsilon = skData.epsilon,
                         centers = new NativeArray<float3>(skCentersArr, Allocator.Persistent),
                         weights = new NativeArray<float3>(skWeightsArr, Allocator.Persistent),
-                        polyWeights = new NativeArray<float3>(skPolyArr, Allocator.Persistent)
+                        polyWeights = new NativeArray<float3>(skPolyArr, Allocator.Persistent),
+                        boundsMin = bMin,
+                        boundsMax = bMax,
+                        useBounds = useBounds
                     };
                     shapeKeyRuntimeDataList.Add(runtimeData);
                 }
@@ -320,7 +370,8 @@ public class RBFDeformer : MonoBehaviour
             polyWeights = polyWeights,
             epsilon = epsilon,
             localToWorld = targetTransform.localToWorldMatrix,
-            inverseRotation = Quaternion.Inverse(targetTransform.rotation)
+            inverseRotation = Quaternion.Inverse(targetTransform.rotation),
+            useBounds = false // Main deformation doesn't use bounds
         };
 
         // 実行と待機
@@ -380,7 +431,8 @@ public class RBFDeformer : MonoBehaviour
                         polyWeights = polyWeights,
                         epsilon = epsilon,
                         localToWorld = targetTransform.localToWorldMatrix,
-                        inverseRotation = Quaternion.Inverse(targetTransform.rotation)
+                        inverseRotation = Quaternion.Inverse(targetTransform.rotation),
+                        useBounds = false // Main deformation doesn't use bounds
                     };
                     shapeJob.Schedule(vertexCount, 64).Complete();
 
@@ -416,36 +468,64 @@ public class RBFDeformer : MonoBehaviour
             var fittedVerticesNA = new NativeArray<float3>(vertexCount, Allocator.TempJob);
             for(int i=0; i<vertexCount; i++) fittedVerticesNA[i] = deformedBaseVerts[i];
 
-            foreach (var skData in shapeKeyRuntimeDataList)
+            // Group by name to handle multi-step keys
+            // We need to group data by key name and sort by weight.
+            var groupedKeys = new Dictionary<string, List<RBFShapeKeyRuntimeData>>();
+            foreach(var data in shapeKeyRuntimeDataList)
             {
-                var deformedShapeVerticesNA = new NativeArray<float3>(vertexCount, Allocator.TempJob);
+                if (!groupedKeys.ContainsKey(data.name)) groupedKeys[data.name] = new List<RBFShapeKeyRuntimeData>();
+                groupedKeys[data.name].Add(data);
+            }
 
-                var skJob = new RBFDeformJob
-                {
-                    vertices = fittedVerticesNA,
-                    deformedVertices = deformedShapeVerticesNA,
-                    centers = skData.centers,
-                    weights = skData.weights,
-                    polyWeights = skData.polyWeights,
-                    epsilon = skData.epsilon,
-                    localToWorld = targetTransform.localToWorldMatrix,
-                    inverseRotation = Quaternion.Inverse(targetTransform.rotation)
-                };
-                skJob.Schedule(vertexCount, 64).Complete();
+            foreach (var kvp in groupedKeys)
+            {
+                string keyName = kvp.Key;
+                var steps = kvp.Value;
+                steps.Sort((a, b) => a.weight.CompareTo(b.weight)); // Sort 50, then 100
+                
+                // We need to track the "Current Deformed State" for this key chain.
+                // Start with Base Fitted Verts.
+                var currentVertsNA = new NativeArray<float3>(vertexCount, Allocator.TempJob);
+                for(int i=0; i<vertexCount; i++) currentVertsNA[i] = deformedBaseVerts[i];
 
-                // Calculate Delta: (Fitted + Shape) - (Fitted)
-                Vector3[] newDeltaVerts = new Vector3[vertexCount];
-                for (int v = 0; v < vertexCount; v++)
+                foreach(var step in steps)
                 {
-                    newDeltaVerts[v] = (Vector3)deformedShapeVerticesNA[v] - deformedBaseVerts[v];
+                    var nextVertsNA = new NativeArray<float3>(vertexCount, Allocator.TempJob);
+
+                    var skJob = new RBFDeformJob
+                    {
+                        vertices = currentVertsNA, // Input is previous step
+                        deformedVertices = nextVertsNA,
+                        centers = step.centers,
+                        weights = step.weights,
+                        polyWeights = step.polyWeights,
+                        epsilon = step.epsilon,
+                        localToWorld = targetTransform.localToWorldMatrix,
+                        inverseRotation = Quaternion.Inverse(targetTransform.rotation),
+                        useBounds = step.useBounds,
+                        boundsMin = step.boundsMin,
+                        boundsMax = step.boundsMax
+                    };
+                    skJob.Schedule(vertexCount, 64).Complete();
+                    
+                    // Calculate Delta for this frame: (Current Step Pos) - (Base Pos)
+                    // Note: BlendShape delta is always relative to the Original Mesh (Base).
+                    Vector3[] frameDeltas = new Vector3[vertexCount];
+                    for (int v = 0; v < vertexCount; v++)
+                    {
+                        frameDeltas[v] = (Vector3)nextVertsNA[v] - deformedBaseVerts[v];
+                    }
+                    
+                    // Add Frame
+                    // Normals/Tangents delta are zero for now
+                    Vector3[] zeroDeltas = new Vector3[vertexCount]; 
+                    deformed.AddBlendShapeFrame(keyName, step.weight, frameDeltas, zeroDeltas, zeroDeltas);
+                    
+                    // Update current verts for next step
+                    currentVertsNA.Dispose();
+                    currentVertsNA = nextVertsNA;
                 }
-
-                // Add new BlendShape
-                // Normals/Tangents delta are zero for now as we don't have that info
-                Vector3[] zeroDeltas = new Vector3[vertexCount]; 
-                deformed.AddBlendShapeFrame(skData.name, 100f, newDeltaVerts, zeroDeltas, zeroDeltas);
-
-                deformedShapeVerticesNA.Dispose();
+                currentVertsNA.Dispose();
             }
             fittedVerticesNA.Dispose();
         }
@@ -461,6 +541,11 @@ public class RBFDeformer : MonoBehaviour
         [ReadOnly] public float epsilon;
         [ReadOnly] public float4x4 localToWorld;
         [ReadOnly] public quaternion inverseRotation;
+        
+        // Masking
+        [ReadOnly] public bool useBounds;
+        [ReadOnly] public float3 boundsMin;
+        [ReadOnly] public float3 boundsMax;
 
         [WriteOnly] public NativeArray<float3> deformedVertices;
 
@@ -468,6 +553,20 @@ public class RBFDeformer : MonoBehaviour
         {
             float3 p_local = vertices[i];
             float3 p_world = math.transform(localToWorld, p_local);
+            
+            // Bounds Check (Masking)
+            if (useBounds)
+            {
+                if (p_world.x < boundsMin.x || p_world.x > boundsMax.x ||
+                    p_world.y < boundsMin.y || p_world.y > boundsMax.y ||
+                    p_world.z < boundsMin.z || p_world.z > boundsMax.z)
+                {
+                    // Outside of active region -> No deformation
+                    deformedVertices[i] = p_local;
+                    return;
+                }
+            }
+            
             float3 displacement = float3.zero;
             float eps2 = epsilon * epsilon;
 

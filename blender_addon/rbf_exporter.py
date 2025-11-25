@@ -389,18 +389,82 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
                     key_deltas_filtered = key_deltas_filtered[indices]
                     
                 # Fit RBF
-                print(f"Fitting RBF for {key_block.name} ({len(key_centers)} points)...")
+                #
+
+
+
+                
+                print(f"Fitting RBF for {key_block.name} (2-Step Calculation)...")
+                
+                # --- Step 1: Basis -> 0.5 ---
+                # Target points at 0.5
+                # P_0.5 = P_basis + (P_key - P_basis) * 0.5
+
+                
+                # Centers: Basis Verts (active + anchor)
+                # Deltas: (Key - Basis) * 0.5
+                
+                step1_centers = key_centers
+                step1_deltas = key_deltas_filtered * 0.5
+                step1_targets = step1_centers + step1_deltas
+                
+                rbf_step1 = RBFCore(epsilon=props.epsilon, smoothing=props.smoothing)
+                rbf_step1.fit(step1_centers, step1_targets)
+                
+                # --- Step 2: 0.5 -> 1.0 ---
+                # Source: Target points at 0.5 (step1_targets)
+                # Target: Target points at 1.0 (key_target_points)
+                
+                # Define key_target_points (Target at 1.0)
                 key_target_points = key_centers + key_deltas_filtered
                 
-                key_rbf = RBFCore(epsilon=props.epsilon, smoothing=props.smoothing)
-                key_rbf.fit(key_centers, key_target_points)
+                step2_centers = step1_targets
+                step2_targets = key_target_points
+                
+                rbf_step2 = RBFCore(epsilon=props.epsilon, smoothing=props.smoothing)
+                rbf_step2.fit(step2_centers, step2_targets)
+                
+                # Calculate Bounds (using the union of start and end positions to be safe)
+                # We use the original active centers logic for bounds
+                final_active_centers = active_centers.copy()
+                if props.enable_x_mirror:
+                    mirror_active_mask = active_centers[:, 0] > 0.0001
+                    mirror_active = active_centers[mirror_active_mask].copy()
+                    mirror_active[:, 0] *= -1
+                    final_active_centers = np.vstack([final_active_centers, mirror_active])
+                
+                min_b = np.min(final_active_centers, axis=0)
+                max_b = np.max(final_active_centers, axis=0)
+                
+                # Expand bounds to include the deformed state (approx)
+                # Since we don't know the exact deformed bounds of the clothing, 
+                # we just add a generous margin.
+                margin = props.mask_margin
+                min_b -= margin
+                max_b += margin
+
+                # Export TWO entries for this key: one for 50%, one for 100%
                 
                 export_data["shape_keys"].append({
                     "name": key_block.name,
-                    "epsilon": float(key_rbf.epsilon),
-                    "centers": key_centers.tolist(),
-                    "weights": key_rbf.weights.tolist(),
-                    "poly_weights": key_rbf.polynomial_weights.tolist()
+                    "weight": 50.0, # Intermediate frame
+                    "epsilon": float(rbf_step1.epsilon),
+                    "centers": step1_centers.tolist(),
+                    "weights": rbf_step1.weights.tolist(),
+                    "poly_weights": rbf_step1.polynomial_weights.tolist(),
+                    "bounds_min": min_b.tolist(),
+                    "bounds_max": max_b.tolist()
+                })
+                
+                export_data["shape_keys"].append({
+                    "name": key_block.name,
+                    "weight": 100.0, # Final frame
+                    "epsilon": float(rbf_step2.epsilon),
+                    "centers": step2_centers.tolist(),
+                    "weights": rbf_step2.weights.tolist(),
+                    "poly_weights": rbf_step2.polynomial_weights.tolist(),
+                    "bounds_min": min_b.tolist(),
+                    "bounds_max": max_b.tolist()
                 })
 
         else:
@@ -468,12 +532,24 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
                 key_rbf = RBFCore(epsilon=props.epsilon, smoothing=props.smoothing)
                 key_rbf.fit(key_centers, key_target_points)
                 
+                # Calculate Bounding Box of ACTIVE points (for masking)
+                
+                min_b = np.min(key_centers, axis=0)
+                max_b = np.max(key_centers, axis=0)
+                
+                # Apply Margin
+                margin = props.mask_margin
+                min_b -= margin
+                max_b += margin
+                
                 export_data["shape_keys"].append({
                     "name": key_block.name,
                     "epsilon": float(key_rbf.epsilon),
                     "centers": key_centers.tolist(),
                     "weights": key_rbf.weights.tolist(),
-                    "poly_weights": key_rbf.polynomial_weights.tolist()
+                    "poly_weights": key_rbf.polynomial_weights.tolist(),
+                    "bounds_min": min_b.tolist(),
+                    "bounds_max": max_b.tolist()
                 })
         
         with open(self.filepath, 'w') as f:
@@ -530,6 +606,13 @@ class OpenFitterRBFProperties(bpy.types.PropertyGroup):
         description="Mirror points across X axis (useful for symmetric meshes)",
         default=False
     )
+    
+    mask_margin: bpy.props.FloatProperty(
+        name="Mask Margin",
+        description="Margin for the bounding box mask of shape keys. Vertices outside (Active Region + Margin) will not be deformed.",
+        default=0.2,
+        min=0.0
+    )
 
 class OPENFITTER_PT_rbf_export(bpy.types.Panel):
     bl_label = "RBF Field Export"
@@ -564,6 +647,7 @@ class OPENFITTER_PT_rbf_export(bpy.types.Panel):
             layout.prop(props, "smoothing")
             layout.prop(props, "max_points")
             layout.prop(props, "enable_x_mirror")
+            layout.prop(props, "mask_margin")
             
             layout.separator()
             layout.operator("openfitter.export_rbf_json", icon='EXPORT')
