@@ -249,14 +249,114 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
     
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     
-    def create_adaptive_deformation_field(self, source_points, target_points, epsilon, smoothing):
+    def create_adaptive_deformation_field(self, source_points, target_points, epsilon, smoothing, max_points=1000, error_threshold=0.001):
         """
-        Creates an adaptive deformation field.
-        Currently wraps the standard RBF fitting, but allows for future expansion
-        to adaptive point selection or parameter tuning.
+        Creates an adaptive deformation field using Greedy Selection.
+        Selects a subset of source_points that best approximates the deformation.
         """
-        # Future: Implement adaptive sampling or epsilon tuning here
-        return fit_rbf_model(source_points, target_points, epsilon, smoothing)
+        print(f"Starting Adaptive RBF Fitting (Max Points: {max_points}, Threshold: {error_threshold})")
+        
+        num_points = len(source_points)
+        if num_points <= max_points:
+            # If we have fewer points than max, just use all of them
+            print(f"Using all {num_points} points (<= max_points)")
+            return fit_rbf_model(source_points, target_points, epsilon, smoothing)
+            
+        # --- Greedy Selection Algorithm ---
+        # 1. Start with a small random subset or just the point with max deformation
+        # For stability, let's pick a few random points + max deformation point
+        
+        active_indices = []
+        remaining_indices = list(range(num_points))
+        
+        # Calculate magnitudes to find max deformation
+        displacements = target_points - source_points
+        mags = np.linalg.norm(displacements, axis=1)
+        max_def_idx = np.argmax(mags)
+        
+        active_indices.append(max_def_idx)
+        remaining_indices.remove(max_def_idx)
+        
+        # Add a few random points to stabilize initial fit (e.g., 10 points)
+        np.random.seed(42)
+        initial_count = min(10, len(remaining_indices))
+        if initial_count > 0:
+            random_picks = np.random.choice(remaining_indices, initial_count, replace=False)
+            for idx in random_picks:
+                active_indices.append(idx)
+                remaining_indices.remove(idx)
+        
+        current_rbf = None
+        
+        # Iterative Loop
+        iteration = 0
+        while len(active_indices) < max_points:
+            iteration += 1
+            
+            # Fit RBF to active set
+            active_source = source_points[active_indices]
+            active_target = target_points[active_indices]
+            
+            current_rbf = fit_rbf_model(active_source, active_target, epsilon, smoothing)
+            
+            # Evaluate on remaining points
+            if not remaining_indices:
+                break
+                
+            # We need to evaluate RBF. RBFCore doesn't have a public 'predict' method exposed easily 
+            # but we can reconstruct the evaluation logic.
+            # Or better, add a predict method to RBFCore? 
+            # For now, let's implement evaluation here to avoid changing RBFCore if possible, 
+            # but changing RBFCore is cleaner.
+            
+            # Let's assume we add a predict method to RBFCore or do it manually here.
+            # Manual evaluation:
+            # s(x) = sum(w_i * phi(|x - c_i|)) + P(x)
+            
+            rem_source = source_points[remaining_indices]
+            rem_target = target_points[remaining_indices]
+            
+            # Distance matrix: Rem vs Active
+            # d[i, j] = dist(rem[i], active[j])
+            d1 = rem_source[:, np.newaxis, :]
+            d2 = active_source[np.newaxis, :, :]
+            dists = np.sqrt(np.sum((d1 - d2)**2, axis=2))
+            
+            phi = np.sqrt(dists**2 + epsilon**2)
+            
+            # Polynomial
+            # P = [1, x, y, z]
+            P = np.ones((len(rem_source), 4))
+            P[:, 1:] = rem_source
+            
+            # Prediction
+            # weights: (num_active, 3)
+            # poly_weights: (4, 3)
+            pred_disp = phi @ current_rbf.weights + P @ current_rbf.polynomial_weights
+            
+            # Calculate Error
+            # true_disp = rem_target - rem_source
+            # error = || pred_disp - true_disp ||
+            true_disp = rem_target - rem_source
+            errors = np.linalg.norm(pred_disp - true_disp, axis=1)
+            
+            max_error_idx_local = np.argmax(errors)
+            max_error = errors[max_error_idx_local]
+            
+            if max_error < error_threshold:
+                print(f"Converged at iteration {iteration}. Max Error: {max_error:.6f}")
+                break
+                
+            # Add point with max error
+            best_idx = remaining_indices[max_error_idx_local]
+            active_indices.append(best_idx)
+            remaining_indices.pop(max_error_idx_local) # pop by index in list
+            
+            if iteration % 10 == 0:
+                print(f"Iter {iteration}: Points {len(active_indices)}, Max Error {max_error:.6f}")
+        
+        print(f"Adaptive Fit Complete. Used {len(active_indices)} points.")
+        return current_rbf
 
     def invoke(self, context, event):
         if not self.filepath:
@@ -316,16 +416,17 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
             centers, deltas_filtered = apply_x_mirror(centers, deltas_filtered)
             print(f"Points after mirroring: {len(centers)}")
 
-        # Downsample
-        centers, deltas_filtered = downsample_points(centers, deltas_filtered, props.epsilon, props.max_points)
-        print(f"Points after Grid Filter: {len(centers)}")
+        # Downsample (Legacy Grid Sampling - Removed in favor of Adaptive Greedy)
+        # centers, deltas_filtered = downsample_points(centers, deltas_filtered, props.epsilon, props.max_points)
+        # print(f"Points after Grid Filter: {len(centers)}")
 
         # Fit RBF
         print("Fitting Main RBF...")
         target_points = centers + deltas_filtered
         
         start_time = time.time()
-        rbf = self.create_adaptive_deformation_field(centers, target_points, props.epsilon, props.smoothing)
+        # Pass max_points from props
+        rbf = self.create_adaptive_deformation_field(centers, target_points, props.epsilon, props.smoothing, max_points=props.max_points)
         print(f"RBF Fit finished in {time.time() - start_time:.4f}s")
         
         # Init Export Data
@@ -385,8 +486,8 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
             if props.enable_x_mirror:
                 key_centers, key_deltas_filtered = apply_x_mirror(key_centers, key_deltas_filtered)
 
-            # Downsample
-            key_centers, key_deltas_filtered = downsample_points(key_centers, key_deltas_filtered, props.epsilon, props.max_points)
+            # Downsample (Legacy - Removed)
+            # key_centers, key_deltas_filtered = downsample_points(key_centers, key_deltas_filtered, props.epsilon, props.max_points)
             
             # --- Two-Step Calculation ---
             print(f"Fitting RBF for {key_block.name} (2-Step Calculation)...")
@@ -396,14 +497,14 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
             step1_deltas = key_deltas_filtered * 0.5
             step1_targets = step1_centers + step1_deltas
             
-            rbf_step1 = self.create_adaptive_deformation_field(step1_centers, step1_targets, props.epsilon, props.smoothing)
+            rbf_step1 = self.create_adaptive_deformation_field(step1_centers, step1_targets, props.epsilon, props.smoothing, max_points=props.max_points)
             
             # Step 2: 0.5 -> 1.0
             key_target_points = key_centers + key_deltas_filtered # Target at 1.0
             step2_centers = step1_targets
             step2_targets = key_target_points
             
-            rbf_step2 = self.create_adaptive_deformation_field(step2_centers, step2_targets, props.epsilon, props.smoothing)
+            rbf_step2 = self.create_adaptive_deformation_field(step2_centers, step2_targets, props.epsilon, props.smoothing, max_points=props.max_points)
             
             # Calculate Bounds (Active Points + Mirror if needed)
             # We use the original active_centers for bounds calculation
@@ -440,14 +541,14 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
             if props.enable_x_mirror:
                 key_centers, key_deltas_filtered = apply_x_mirror(key_centers, key_deltas_filtered)
 
-            # Downsample
-            key_centers, key_deltas_filtered = downsample_points(key_centers, key_deltas_filtered, props.epsilon, props.max_points)
+            # Downsample (Legacy - Removed)
+            # key_centers, key_deltas_filtered = downsample_points(key_centers, key_deltas_filtered, props.epsilon, props.max_points)
             
             # Fit RBF
             print(f"Fitting RBF for {key_block.name} ({len(key_centers)} points)...")
             key_target_points = key_centers + key_deltas_filtered
             
-            key_rbf = self.create_adaptive_deformation_field(key_centers, key_target_points, props.epsilon, props.smoothing)
+            key_rbf = self.create_adaptive_deformation_field(key_centers, key_target_points, props.epsilon, props.smoothing, max_points=props.max_points)
             
             # Calculate Bounds
             # For fallback, active points are key_centers (since we filtered by delta)
