@@ -4,13 +4,13 @@
 
 <a name="english"></a>
 
-An open-source avatar clothing fitting tool compatible with the "MochiFitter" workflow.
+An open-source avatar clothing fitting tool designed to handle data formats from the "MochiFitter" workflow.
 Based on the GPL-3 core logic released by Nine Gates, OpenFitter provides a complete pipeline for transferring clothing between different avatar shapes using RBF (Radial Basis Function) deformation and Bone Pose transfer.
 
 ***
 
 **Status**: Alpha (Partially Functional)
-While the core features for fitting clothing (Mesh Deformation, Bone Transformation, and Re-binding) are implemented and usable, full compatibility with all "MochiFitter" features is not yet achieved.
+While the core features for fitting clothing (Mesh Deformation, Bone Transformation, and Re-binding) are implemented and usable, full feature parity with "MochiFitter" is not currently guaranteed.
 
 ***
 
@@ -62,17 +62,17 @@ See the LICENSE file for details.
 
 ## Special Thanks
 
-We would like to express our gratitude to Nine Gates for releasing the core logic as open source. Their great contribution to the open source community made this project possible.
+We would like to express our gratitude to Nine Gates for releasing the core logic as open source. Their contribution to the open source community laid the foundation for this project.
 
 ## Acknowledgements & Compliance
 
-This software is an independent open-source implementation compatible with "MochiFitter".
+This software is an independent open-source implementation interoperable with "MochiFitter" data.
 
 * Core Engine: Derived from the GPL-3 licensed source code released by Nine Gates.
 * UI & Frontend: Developed entirely from scratch.
 
 Note on Development:
-To ensure compliance with the original software's EULA (specifically Article 3), this project was developed without any reverse engineering, decompilation, or disassembly of the proprietary binaries. All original implementations are based solely on public documentation and the GPL-3 source code.
+To ensure compliance with the original software's EULA (specifically regarding reverse engineering prohibitions), this project was developed without any reverse engineering, decompilation, or disassembly of proprietary binaries. All original implementations are based solely on public documentation and the GPL-3 source code.
 
 This is an unofficial project and has not received any approval or endorsement from Nine Gates or "MochiFitter".
 
@@ -82,13 +82,13 @@ This is an unofficial project and has not received any approval or endorsement f
 
 # OpenFitter (日本語)
 
-「もちふぃった～」ワークフローと互換性のある、オープンソースのアバター衣装フィッティングツールです。
+「もちふぃった～」ワークフローのデータ形式に対応した、オープンソースのアバター衣装フィッティングツールです。
 Nine Gatesによって公開されたGPL-3コアロジックに基づき、OpenFitterはRBF（放射基底関数）変形とボーンポーズ転送を使用して、異なるアバター形状間で衣装を転送するための完全なパイプラインを提供します。
 
 ***
 
 **ステータス**: アルファ（部分的機能動作）
-衣装のフィッティングに必要なコア機能（メッシュ変形、ボーン変換、再バインド）は実装されており使用可能ですが、「もちふぃった～」の全機能との完全な互換性はまだ達成されていません。
+衣装のフィッティングに必要なコア機能（メッシュ変形、ボーン変換、再バインド）は実装されており使用可能ですが、「もちふぃった～」の全機能との完全な互換性を保証するものではありません。
 
 ***
 
@@ -140,16 +140,16 @@ Nine Gatesによって公開されたGPL-3コアロジックに基づき、OpenF
 
 ## 謝辞
 
-コアロジックをオープンソースとして公開されたNine Gatesに感謝の意を表します。オープンソースコミュニティへの多大なる貢献により、本プロジェクトの開発が可能となりました。
+コアロジックをオープンソースとして公開されたNine Gatesに感謝の意を表します。オープンソースコミュニティへの貢献により、本プロジェクトの基礎が築かれました。
 
 ## クレジット・規約の遵守
 
-本ソフトウェアは「もちふぃった～」と互換性のある、独立したオープンソース実装です。
+本ソフトウェアは「もちふぃった～」のデータと相互運用性を持つ、独立したオープンソース実装です。
 
 * コアエンジン: Nine Gatesにより公開されたGPL-3ソースコードを基にしています。
 * UI・フロントエンド: 本プロジェクトのために独自に実装されたものです。
 
 開発方針と規約の遵守について:
-オリジナル製品の利用規約（特に第三条の禁止事項）を遵守するため、本プロジェクトはプロプライエタリなバイナリに対するリバースエンジニアリング（逆コンパイル、逆アセンブル等）を一切行わずに開発されました。独自実装部分は、公開されているドキュメントおよびGPL-3ソースコードのみを参照しています。
+オリジナル製品の利用規約（特にリバースエンジニアリングの禁止に関する条項）を遵守するため、本プロジェクトはプロプライエタリなバイナリに対するリバースエンジニアリング（逆コンパイル、逆アセンブル等）を一切行わずに開発されました。独自実装部分は、公開されているドキュメントおよびGPL-3ソースコードのみを参照しています。
 
 本プロジェクトは非公式なものであり、Nine Gatesおよび「もちふぃった～」からのあらゆる承認、認可等も受けていません。
