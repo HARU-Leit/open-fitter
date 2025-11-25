@@ -22,12 +22,23 @@ using System.IO;
 using Newtonsoft.Json;
 
 [System.Serializable]
+public class RBFShapeKeyData
+{
+    public string name;
+    public float epsilon;
+    public List<List<float>> centers;
+    public List<List<float>> weights;
+    public List<List<float>> poly_weights;
+}
+
+[System.Serializable]
 public class RBFData
 {
     public float epsilon;
     public List<List<float>> centers;
     public List<List<float>> weights;
     public List<List<float>> poly_weights;
+    public List<RBFShapeKeyData> shape_keys; // New field for additional shape keys
 }
 
 [ExecuteInEditMode] // エディタ上で動作することを明示
@@ -58,6 +69,18 @@ public class RBFDeformer : MonoBehaviour
     
     private float epsilon;
 
+    // Additional Shape Keys Data
+    private List<RBFShapeKeyRuntimeData> shapeKeyRuntimeDataList = new List<RBFShapeKeyRuntimeData>();
+
+    private class RBFShapeKeyRuntimeData
+    {
+        public string name;
+        public float epsilon;
+        public NativeArray<float3> centers;
+        public NativeArray<float3> weights;
+        public NativeArray<float3> polyWeights;
+    }
+
     // コンポーネント削除時やスクリプト再コンパイル時にメモリを解放
     void OnDisable()
     {
@@ -74,6 +97,14 @@ public class RBFDeformer : MonoBehaviour
         if (centers.IsCreated) centers.Dispose();
         if (weights.IsCreated) weights.Dispose();
         if (polyWeights.IsCreated) polyWeights.Dispose();
+
+        foreach (var data in shapeKeyRuntimeDataList)
+        {
+            if (data.centers.IsCreated) data.centers.Dispose();
+            if (data.weights.IsCreated) data.weights.Dispose();
+            if (data.polyWeights.IsCreated) data.polyWeights.Dispose();
+        }
+        shapeKeyRuntimeDataList.Clear();
     }
 
     // エディタから「実行」ボタンで呼ばれる一括処理関数
@@ -203,6 +234,34 @@ public class RBFDeformer : MonoBehaviour
             centers = new NativeArray<float3>(centersArr, Allocator.Persistent);
             weights = new NativeArray<float3>(weightsArr, Allocator.Persistent);
             polyWeights = new NativeArray<float3>(polyArr, Allocator.Persistent);
+
+            // Load Additional Shape Keys
+            if (data.shape_keys != null)
+            {
+                foreach (var skData in data.shape_keys)
+                {
+                    var skCentersArr = ConvertToUnitySpace(skData.centers);
+                    var skWeightsArr = ConvertToUnitySpace(skData.weights);
+                    var skPolyArr = ConvertToUnitySpace(skData.poly_weights);
+
+                    // Apply same polynomial correction
+                    skPolyArr[1] = -skPolyArr[1];
+                    float3 skOldRow2 = skPolyArr[2];
+                    float3 skOldRow3 = skPolyArr[3];
+                    skPolyArr[2] = skOldRow3;
+                    skPolyArr[3] = -skOldRow2;
+
+                    var runtimeData = new RBFShapeKeyRuntimeData
+                    {
+                        name = skData.name,
+                        epsilon = skData.epsilon,
+                        centers = new NativeArray<float3>(skCentersArr, Allocator.Persistent),
+                        weights = new NativeArray<float3>(skWeightsArr, Allocator.Persistent),
+                        polyWeights = new NativeArray<float3>(skPolyArr, Allocator.Persistent)
+                    };
+                    shapeKeyRuntimeDataList.Add(runtimeData);
+                }
+            }
 
             return true;
         }
@@ -342,6 +401,53 @@ public class RBFDeformer : MonoBehaviour
                 }
             }
             Debug.Log($"<color=cyan>[RBF Deformer]</color> Processed {shapeCount} BlendShapes for {original.name}");
+        }
+
+        // ---------------------------------------------------------
+        // 3. Additional Shape Keys from RBF Data (Target Transfer)
+        // ---------------------------------------------------------
+        if (shapeKeyRuntimeDataList.Count > 0)
+        {
+            Debug.Log($"<color=cyan>[RBF Deformer]</color> Generating {shapeKeyRuntimeDataList.Count} new Shape Keys from RBF Data...");
+            
+            // The RBF fields for shape keys map from (Target Base) -> (Target Shape).
+            // We apply this deformation to the already fitted clothing vertices (deformedBaseVerts).
+            
+            var fittedVerticesNA = new NativeArray<float3>(vertexCount, Allocator.TempJob);
+            for(int i=0; i<vertexCount; i++) fittedVerticesNA[i] = deformedBaseVerts[i];
+
+            foreach (var skData in shapeKeyRuntimeDataList)
+            {
+                var deformedShapeVerticesNA = new NativeArray<float3>(vertexCount, Allocator.TempJob);
+
+                var skJob = new RBFDeformJob
+                {
+                    vertices = fittedVerticesNA,
+                    deformedVertices = deformedShapeVerticesNA,
+                    centers = skData.centers,
+                    weights = skData.weights,
+                    polyWeights = skData.polyWeights,
+                    epsilon = skData.epsilon,
+                    localToWorld = targetTransform.localToWorldMatrix,
+                    inverseRotation = Quaternion.Inverse(targetTransform.rotation)
+                };
+                skJob.Schedule(vertexCount, 64).Complete();
+
+                // Calculate Delta: (Fitted + Shape) - (Fitted)
+                Vector3[] newDeltaVerts = new Vector3[vertexCount];
+                for (int v = 0; v < vertexCount; v++)
+                {
+                    newDeltaVerts[v] = (Vector3)deformedShapeVerticesNA[v] - deformedBaseVerts[v];
+                }
+
+                // Add new BlendShape
+                // Normals/Tangents delta are zero for now as we don't have that info
+                Vector3[] zeroDeltas = new Vector3[vertexCount]; 
+                deformed.AddBlendShapeFrame(skData.name, 100f, newDeltaVerts, zeroDeltas, zeroDeltas);
+
+                deformedShapeVerticesNA.Dispose();
+            }
+            fittedVerticesNA.Dispose();
         }
     }
 

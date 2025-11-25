@@ -198,16 +198,8 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
         # --- Extract Data ---
         print(f"Extracting vertices from {obj.name}...")
         
-        # We use the raw shape key coordinates (Local Space)
-        # If the user wants World Space, they should apply transforms, but usually Shape Keys are local.
-        # However, RBF is often used in World Space or Local Space depending on the system.
-        # profile_converter.py uses whatever was in the .npz.
-        # bone_exporter.py exported World Space.
-        # If we want to deform "nearby meshes", we probably want World Space relative to the object root, 
-        # or just Local Space if the other meshes are children.
-        # Let's stick to Local Space of the object for now, as Shape Keys are local.
-        # If the object has scale/rotation, it might matter.
-        # But usually, we want the field relative to the mesh.
+        # We use the raw shape key coordinates (Local Space).
+        # This assumes the deformation field is relative to the mesh's local space.
         
         basis_block = obj.data.shape_keys.key_blocks[basis_name]
         target_block = obj.data.shape_keys.key_blocks[target_name]
@@ -307,13 +299,187 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
             "epsilon": float(rbf.epsilon),
             "centers": centers.tolist(),
             "weights": rbf.weights.tolist(),
-            "poly_weights": rbf.polynomial_weights.tolist()
+            "poly_weights": rbf.polynomial_weights.tolist(),
+            "shape_keys": [] # List of additional RBF fields for shape keys
         }
+
+        # --- Process Additional Shape Keys ---
+        # If a Target Body Object is specified, use its shape keys to generate RBF fields
+        # for transferring shape keys (e.g. Breasts_Big) to the fitted clothing.
+        # Otherwise, fallback to the old behavior (using extra keys on the active object).
+        
+        target_body = props.target_body_object
+        
+        if target_body and target_body.type == 'MESH' and target_body.data.shape_keys:
+            print(f"Processing shape keys from Target Body: {target_body.name}")
+            
+            # We need the vertices of the Target Body in its Basis state.
+            # These vertices will serve as the "Centers" for the Shape Key RBFs.
+            
+            tb_mesh = target_body.data
+            tb_basis_key = tb_mesh.shape_keys.key_blocks[0] # Assume first key is Basis
+            tb_num_verts = len(tb_basis_key.data)
+            
+            tb_basis_verts = np.zeros((tb_num_verts, 3), dtype=np.float32)
+            tb_basis_key.data.foreach_get("co", tb_basis_verts.ravel())
+            
+            for key_block in tb_mesh.shape_keys.key_blocks:
+                if key_block == tb_basis_key: continue # Skip Basis
+                
+                print(f"Processing Target Body Key: {key_block.name}")
+                
+                # Extract Key Verts
+                tb_key_verts = np.zeros((tb_num_verts, 3), dtype=np.float32)
+                key_block.data.foreach_get("co", tb_key_verts.ravel())
+                
+                # Delta = Key - Basis
+                key_deltas = tb_key_verts - tb_basis_verts
+                
+                # Filter
+                key_mags = np.linalg.norm(key_deltas, axis=1)
+                key_mask = key_mags > 0.0001
+                
+                # Active Points (Moving)
+                active_centers = tb_basis_verts[key_mask]
+                active_deltas = key_deltas[key_mask]
+                
+                # Anchor Points (Static)
+                # To prevent global distortion (RBF bleeding into undefined areas), we include points that do NOT move.
+                # These "Anchor Points" force the deformation to zero in areas unaffected by the shape key.
+                
+                anchor_mask = ~key_mask
+                anchor_centers = tb_basis_verts[anchor_mask]
+                anchor_deltas = key_deltas[anchor_mask] # Should be (0,0,0)
+                
+                num_active = len(active_centers)
+                if num_active == 0:
+                    continue
+                
+                # Combine Active and Anchor points.
+                # The subsequent Grid/Random downsampling will ensure a balanced distribution.
+                key_centers = np.vstack([active_centers, anchor_centers])
+                key_deltas_filtered = np.vstack([active_deltas, anchor_deltas])
+
+                # X-Mirror
+                if props.enable_x_mirror:
+                    mirror_mask = key_centers[:, 0] > 0.0001
+                    mirror_centers = key_centers[mirror_mask].copy()
+                    mirror_deltas = key_deltas_filtered[mirror_mask].copy()
+                    mirror_centers[:, 0] *= -1
+                    mirror_deltas[:, 0] *= -1
+                    key_centers = np.vstack([key_centers, mirror_centers])
+                    key_deltas_filtered = np.vstack([key_deltas_filtered, mirror_deltas])
+
+                # Downsample
+                # Grid
+                grid = {}
+                for i, p in enumerate(key_centers):
+                    k = (int(p[0]/grid_spacing), int(p[1]/grid_spacing), int(p[2]/grid_spacing))
+                    if k not in grid: grid[k] = i
+                indices = list(grid.values())
+                indices.sort()
+                key_centers = key_centers[indices]
+                key_deltas_filtered = key_deltas_filtered[indices]
+                
+                # Random
+                if len(key_centers) > max_points:
+                    np.random.seed(42)
+                    indices = np.random.choice(len(key_centers), max_points, replace=False)
+                    key_centers = key_centers[indices]
+                    key_deltas_filtered = key_deltas_filtered[indices]
+                    
+                # Fit RBF
+                print(f"Fitting RBF for {key_block.name} ({len(key_centers)} points)...")
+                key_target_points = key_centers + key_deltas_filtered
+                
+                key_rbf = RBFCore(epsilon=props.epsilon, smoothing=props.smoothing)
+                key_rbf.fit(key_centers, key_target_points)
+                
+                export_data["shape_keys"].append({
+                    "name": key_block.name,
+                    "epsilon": float(key_rbf.epsilon),
+                    "centers": key_centers.tolist(),
+                    "weights": key_rbf.weights.tolist(),
+                    "poly_weights": key_rbf.polynomial_weights.tolist()
+                })
+
+        else:
+            # Fallback: Use extra keys on the active object (Old Logic)
+            # This is useful if the user merged everything into one mesh.
+            for key_block in obj.data.shape_keys.key_blocks:
+                if key_block.name == basis_name or key_block.name == target_name:
+                    continue
+                    
+                print(f"Processing additional shape key (Active Object): {key_block.name}")
+                
+                # Extract vertices for this key
+                key_verts = np.zeros((num_verts, 3), dtype=np.float32)
+                key_block.data.foreach_get("co", key_verts.ravel())
+                
+                # Source for this RBF is the Target Verts of the main deformation
+                # (which we already extracted as `target_verts`)
+                
+                # Delta = Key - Target
+                key_deltas = key_verts - target_verts
+                
+                # Filter
+                key_mags = np.linalg.norm(key_deltas, axis=1)
+                key_mask = key_mags > 0.0001
+                
+                key_centers = target_verts[key_mask] # Centers are on the Target Mesh
+                key_deltas_filtered = key_deltas[key_mask]
+                
+                if len(key_centers) == 0:
+                    print(f"Skipping {key_block.name}: No significant difference from Target.")
+                    continue
+                    
+                # X-Mirror (if enabled)
+                if props.enable_x_mirror:
+                    mirror_mask = key_centers[:, 0] > 0.0001
+                    mirror_centers = key_centers[mirror_mask].copy()
+                    mirror_deltas = key_deltas_filtered[mirror_mask].copy()
+                    mirror_centers[:, 0] *= -1
+                    mirror_deltas[:, 0] *= -1
+                    key_centers = np.vstack([key_centers, mirror_centers])
+                    key_deltas_filtered = np.vstack([key_deltas_filtered, mirror_deltas])
+
+                # Downsample (Grid + Random)
+                # Grid
+                grid = {}
+                for i, p in enumerate(key_centers):
+                    k = (int(p[0]/grid_spacing), int(p[1]/grid_spacing), int(p[2]/grid_spacing))
+                    if k not in grid: grid[k] = i
+                indices = list(grid.values())
+                indices.sort()
+                key_centers = key_centers[indices]
+                key_deltas_filtered = key_deltas_filtered[indices]
+                
+                # Random
+                if len(key_centers) > max_points:
+                    np.random.seed(42)
+                    indices = np.random.choice(len(key_centers), max_points, replace=False)
+                    key_centers = key_centers[indices]
+                    key_deltas_filtered = key_deltas_filtered[indices]
+                    
+                # Fit RBF
+                print(f"Fitting RBF for {key_block.name} ({len(key_centers)} points)...")
+                key_target_points = key_centers + key_deltas_filtered
+                
+                key_rbf = RBFCore(epsilon=props.epsilon, smoothing=props.smoothing)
+                key_rbf.fit(key_centers, key_target_points)
+                
+                export_data["shape_keys"].append({
+                    "name": key_block.name,
+                    "epsilon": float(key_rbf.epsilon),
+                    "centers": key_centers.tolist(),
+                    "weights": key_rbf.weights.tolist(),
+                    "poly_weights": key_rbf.polynomial_weights.tolist()
+                })
         
         with open(self.filepath, 'w') as f:
             json.dump(export_data, f)
             
-        self.report({'INFO'}, f"Saved RBF data to {self.filepath}")
+        self.report({'INFO'}, f"Saved RBF data to {self.filepath} (with {len(export_data['shape_keys'])} extra shapes)")
         return {'FINISHED'}
 
 # ------------------------------------------------------------------------
@@ -321,6 +487,7 @@ class OPENFITTER_OT_export_rbf_json(bpy.types.Operator):
 # ------------------------------------------------------------------------
 
 class OpenFitterRBFProperties(bpy.types.PropertyGroup):
+    # Main Deformation (Source -> Target)
     basis_shape_key: bpy.props.StringProperty(
         name="Basis Key",
         description="The base shape key (usually Basis)",
@@ -331,6 +498,14 @@ class OpenFitterRBFProperties(bpy.types.PropertyGroup):
         description="The shape key representing the deformation",
         default=""
     )
+    
+    # Optional: Target Body for Shape Key Transfer
+    target_body_object: bpy.props.PointerProperty(
+        name="Target Body",
+        type=bpy.types.Object,
+        description="The target body mesh containing shape keys to transfer (e.g. Breasts_Big)"
+    )
+    
     epsilon: bpy.props.FloatProperty(
         name="Epsilon",
         description="RBF Kernel Epsilon (Width)",
@@ -368,13 +543,19 @@ class OPENFITTER_PT_rbf_export(bpy.types.Panel):
         props = context.scene.openfitter_rbf_props
         obj = context.active_object
         
-        layout.label(text="Active Mesh: " + (obj.name if obj else "None"))
+        layout.label(text="Main Deformation (Active Mesh)", icon='MESH_DATA')
+        layout.label(text="Active: " + (obj.name if obj else "None"))
         
         if obj and obj.type == 'MESH' and obj.data.shape_keys:
             layout.prop_search(props, "basis_shape_key", obj.data.shape_keys, "key_blocks", text="Basis")
             layout.prop_search(props, "target_shape_key", obj.data.shape_keys, "key_blocks", text="Target")
             
             layout.separator()
+            layout.label(text="Shape Key Transfer (Optional)", icon='SHAPEKEY_DATA')
+            layout.prop(props, "target_body_object")
+            
+            layout.separator()
+            layout.label(text="Settings", icon='PREFERENCES')
             
             row = layout.row(align=True)
             row.prop(props, "epsilon")
