@@ -4,10 +4,6 @@
 # ルート直下のpyファイルは追跡対象
 !/*.py
 
-# testsディレクトリ内は追跡対象
-!/tests/
-!/tests/**
-
 # UnityProjectディレクトリは基本無視だが、一部追跡
 !/UnityProject/
 /UnityProject/*
@@ -31,8 +27,10 @@
 !/LICENSE
 !/README.md
 #! Allow tracking of GPL core directory
-!/gpl-core/
-!/gpl-core/**
+!/src/
+/src/*
+!/src/upstream/
+!/src/upstream/**
 
 # Allow tracking of blender_addon directory
 !/blender_addon/

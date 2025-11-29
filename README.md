@@ -4,26 +4,39 @@
 
 <a name="english"></a>
 
-An open-source avatar clothing fitting tool designed to handle data formats from the "MochiFitter" workflow.
-Based on the GPL-3 core logic released by Nine Gates, OpenFitter provides a complete pipeline for transferring clothing between different avatar shapes using RBF (Radial Basis Function) deformation and Bone Pose transfer.
+An open-source avatar clothing fitting tool implementation project designed to handle data formats from the "MochiFitter" workflow.
+Based on the GPL-3 components released by Nine Gates, OpenFitter provides a pipeline for transferring clothing between different avatar shapes using RBF (Radial Basis Function) deformation and Bone Pose transfer.
 
 ***
 
-**Status**: Alpha (Partially Functional)
-While the core features for fitting clothing (Mesh Deformation, Bone Transformation, and Re-binding) are implemented and usable, full feature parity with "MochiFitter" is not currently guaranteed.
+**Status**: Core Refactoring
+
+The project is currently in the phase of analyzing and structuring the original code (Upstream) to ensure complete data compatibility and reproducibility with the original product.
 
 ***
 
-## Features
+## Current Roadmap: Architecture Refresh
 
-*   **Blender Tools**:
-    *   **Bone Pose Exporter**: Exports the difference between two armatures (Source -> Target) as a JSON file.
-    *   **RBF Field Exporter**: Calculates the deformation field between a "Basis" shape key and a "Target" shape key and exports it as RBF data (JSON). Supports epsilon estimation and smoothing.
-*   **Unity Tools**:
-    *   **OpenFitter Converter**: A standalone Editor Window to convert clothing prefabs.
+We are transitioning from our initial implementation to the core logic obtained from upstream to achieve more accurate behavior.
+
+*   Legacy Implementation:
+    The bone control logic originally inferred and implemented independently. This corresponds to the C# code and other components currently in the repository.
+
+*   Upstream-based Implementation (In Progress):
+    GPL code derived from the original product, located in `src/upstream/`.
+    To achieve full compatibility, it is necessary to decipher and refactor this massive codebase spanning approximately 20,000 lines, then re-implement it.
+    The repository is currently prioritizing the analysis and refactoring of this large-scale codebase.
+
+## Features (Legacy)
+
+*   Blender Tools:
+    *   Bone Pose Exporter: Exports the difference between two armatures (Source → Target) as a JSON file.
+    *   RBF Field Exporter: Calculates the deformation field between a "Basis" shape key and a "Target" shape key and exports it as RBF data (JSON).
+*   Unity Tools:
+    *   OpenFitter Converter: A standalone Editor Window to convert clothing prefabs.
         *   Applies RBF deformation to meshes.
         *   Applies Bone Pose transformation to the armature.
-        *   **Asset Saving**: Automatically saves deformed meshes and creates a ready-to-use Prefab.
+        *   Asset Saving: Automatically saves deformed meshes and creates a ready-to-use Prefab.
 
 ## Installation
 
@@ -34,47 +47,24 @@ While the core features for fitting clothing (Mesh Deformation, Bone Transformat
 
 ### Unity Package
 1.  Copy the `UnityProject/Assets/OpenFitter` folder into your Unity project's `Assets` folder.
-2.  Ensure you have the `Newtonsoft Json` package installed (usually included by default in modern Unity versions, or install via Package Manager).
-
-## Usage Workflow
-
-### 1. Blender: Prepare Data
-1.  **Bone Data**:
-    *   Align your Source Armature to the Target Armature.
-    *   Select the Armature and use **OpenFitter > Bone Pose Export** to save `pose_data.json`.
-2.  **RBF Data**:
-    *   Create a "Basis" shape key (original shape) and a "Target" shape key (fitted shape) on your reference mesh.
-    *   Select the mesh and use **OpenFitter > RBF Field Export**.
-    *   Select the Basis and Target keys, adjust settings (Epsilon, Smoothing), and export `rbf_data.json`.
-
-### 2. Unity: Convert Clothing
-1.  Import the exported `.json` files into your Unity project.
-2.  Open **Window > OpenFitter > Converter**.
-3.  Assign the **Source Object** (the clothing prefab you want to fit).
-4.  Assign the **RBF Data JSON** and **Pose Data JSON**.
-5.  Click **Convert & Save**.
-6.  A new `[Fitted]` prefab will be created in the output folder, ready for use.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 (GPL-3).
-See the LICENSE file for details.
-
-## Special Thanks
-
-We would like to express our gratitude to Nine Gates for releasing the core logic as open source. Their contribution to the open source community laid the foundation for this project.
+2.  Ensure you have the `Newtonsoft Json` package installed.
 
 ## Acknowledgements & Compliance
 
 This software is an independent open-source implementation interoperable with "MochiFitter" data.
 
-* Core Engine: Derived from the GPL-3 licensed source code released by Nine Gates.
-* UI & Frontend: Developed entirely from scratch.
+* Core Engine: Based on the GPL-3 source code (Upstream) being released by Nine Gates.
+* UI & Frontend: Being developed independently for this project.
 
-Note on Development:
-To ensure compliance with the original software's EULA (specifically regarding reverse engineering prohibitions), this project was developed without any reverse engineering, decompilation, or disassembly of proprietary binaries. All original implementations are based solely on public documentation and the GPL-3 source code.
+Development Policy and Compliance:
+To ensure compliance with the original product's EULA (specifically regarding reverse engineering prohibitions), this project is being developed without any reverse engineering (decompilation, disassembly, etc.) of proprietary binaries. All independent implementations are referencing only publicly available documentation and GPL-3 source code.
 
 This is an unofficial project and has not received any approval or endorsement from Nine Gates or "MochiFitter".
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3).
+See the LICENSE file for details.
 
 ---
 
@@ -82,74 +72,64 @@ This is an unofficial project and has not received any approval or endorsement f
 
 # OpenFitter (日本語)
 
-「もちふぃった～」ワークフローのデータ形式に対応した、オープンソースのアバター衣装フィッティングツールです。
-Nine Gatesによって公開されたGPL-3コアロジックに基づき、OpenFitterはRBF（放射基底関数）変形とボーンポーズ転送を使用して、異なるアバター形状間で衣装を転送するための完全なパイプラインを提供します。
+「もちふぃった～」ワークフローのデータ形式に対応した、オープンソースのアバター衣装フィッティングツール実装プロジェクトです。
+Nine Gatesによって公開されたGPL-3コンポーネントに基づき、RBF変形とボーンポーズ転送のパイプラインを提供します。
 
 ***
 
-**ステータス**: アルファ（部分的機能動作）
-衣装のフィッティングに必要なコア機能（メッシュ変形、ボーン変換、再バインド）は実装されており使用可能ですが、「もちふぃった～」の全機能との完全な互換性を保証するものではありません。
+**ステータス**: Core Refactoring
+
+現在、本プロジェクトは本家製品との完全なデータ互換性と再現性を確保するため、オリジナルのコード（Upstream）の解析および構造化フェーズにあります。
 
 ***
 
-## 機能
+## アーキテクチャの刷新について (Current Roadmap)
 
-*   **Blenderツール**:
-    *   **Bone Pose Exporter**: 2つのアーマチュア間（ソース→ターゲット）の差分をJSONファイルとしてエクスポートします。
-    *   **RBF Field Exporter**: "Basis"（基準）シェイプキーと "Target"（変形後）シェイプキーの間の変形フィールドを計算し、RBFデータ（JSON）としてエクスポートします。イプシロン推定やスムージングに対応しています。
-*   **Unityツール**:
-    *   **OpenFitter Converter**: 衣装プレハブを変換するための独立したエディタウィンドウです。
+当初の独自実装から、より正確な挙動を実現するために、upstreamより取得したコアロジックへの移行を進めています。
+
+*   レガシー実装:
+    これまで独自に推測・実装していたボーン制御ロジック。現在のリポジトリに含まれるC#コード等が該当します。
+
+*   Upstreamに基づく実装 (進行中):
+    `src/upstream/` に追加された、本家製品由来のGPLコード。
+    完全な互換動作を実現するために、約20,000行に及ぶコードを解明し、リファクタリングして再実装するプロセスを進めています。
+    本リポジトリは現在、この大規模なコードベースの解析とリファクタリングを課題としています。
+
+## 機能(レガシー)
+
+*   Blenderツール:
+    *   Bone Pose Exporter: 2つのアーマチュア間(ソース→ターゲット)の差分をJSONファイルとしてエクスポートします。
+    *   RBF Field Exporter: "Basis"(基準)シェイプキーと "Target"(変形後)シェイプキーの間の変形フィールドを計算し、RBFデータ(JSON)としてエクスポートします。
+*   Unityツール:
+    *   OpenFitter Converter: 衣装プレハブを変換するための独立したエディタウィンドウです。
         *   メッシュへのRBF変形の適用
         *   アーマチュアへのボーンポーズ変形の適用
-        *   **アセット保存**: 変形されたメッシュを自動的に保存し、すぐに使用可能なプレハブを作成します。
+        *   アセット保存: 変形されたメッシュを自動的に保存し、すぐに使用可能なプレハブを作成します。
 
 ## インストール
 
 ### Blenderアドオン
-1.  `blender_addon` フォルダをコピー（またはzip圧縮）し、Blenderの `Edit > Preferences > Add-ons` からインストールします。
+1.  `blender_addon` フォルダをコピー(またはzip圧縮)し、Blenderの `Edit > Preferences > Add-ons` からインストールします。
 2.  "Import-Export: OpenFitter Tools" を有効にします。
 3.  **Sidebar (N-Panel) > OpenFitter** タブからツールにアクセスします。
 
 ### Unityパッケージ
 1.  `UnityProject/Assets/OpenFitter` フォルダを、Unityプロジェクトの `Assets` フォルダ内にコピーします。
-2.  `Newtonsoft Json` パッケージがインストールされていることを確認してください（最近のUnityバージョンでは通常デフォルトで含まれていますが、Package Managerからインストールすることも可能です）。
-
-## 使用ワークフロー
-
-### 1. Blender: データの準備
-1.  **ボーンデータ**:
-    *   ソースアーマチュアをターゲットアーマチュアに位置合わせします。
-    *   アーマチュアを選択し、**OpenFitter > Bone Pose Export** を使用して `pose_data.json` を保存します。
-2.  **RBFデータ**:
-    *   参照メッシュ上で "Basis" シェイプキー（元の形状）と "Target" シェイプキー（フィット後の形状）を作成します。
-    *   メッシュを選択し、**OpenFitter > RBF Field Export** を使用します。
-    *   BasisキーとTargetキーを選択し、設定（Epsilon, Smoothing）を調整して `rbf_data.json` をエクスポートします。
-
-### 2. Unity: 衣装の変換
-1.  エクスポートされた `.json` ファイルをUnityプロジェクトにインポートします。
-2.  **Window > OpenFitter > Converter** を開きます。
-3.  **Source Object**（フィットさせたい衣装プレハブ）を割り当てます。
-4.  **RBF Data JSON** と **Pose Data JSON** を割り当てます。
-5.  **Convert & Save** をクリックします。
-6.  出力フォルダに新しい `[Fitted]` プレハブが作成され、すぐに使用できます。
-
-## ライセンス
-
-本プロジェクトは GNU General Public License v3.0 (GPL-3) の下で公開されています。
-詳細は LICENSE ファイルをご確認ください。
-
-## 謝辞
-
-コアロジックをオープンソースとして公開されたNine Gatesに感謝の意を表します。オープンソースコミュニティへの貢献により、本プロジェクトの基礎が築かれました。
+2.  `Newtonsoft Json` パッケージがインストールされていることを確認してください。
 
 ## クレジット・規約の遵守
 
 本ソフトウェアは「もちふぃった～」のデータと相互運用性を持つ、独立したオープンソース実装です。
 
-* コアエンジン: Nine Gatesにより公開されたGPL-3ソースコードを基にしています。
-* UI・フロントエンド: 本プロジェクトのために独自に実装されたものです。
+* コアエンジン: Nine Gatesにより公開されているGPL-3ソースコード(Upstream)を基にしています。
+* UI・フロントエンド: 本プロジェクトのために独自に実装しているものです。
 
 開発方針と規約の遵守について:
-オリジナル製品の利用規約（特にリバースエンジニアリングの禁止に関する条項）を遵守するため、本プロジェクトはプロプライエタリなバイナリに対するリバースエンジニアリング（逆コンパイル、逆アセンブル等）を一切行わずに開発されました。独自実装部分は、公開されているドキュメントおよびGPL-3ソースコードのみを参照しています。
+オリジナル製品の利用規約(特にリバースエンジニアリングの禁止に関する条項)を遵守するため、本プロジェクトはプロプライエタリなバイナリに対するリバースエンジニアリング(逆コンパイル、逆アセンブル等)を一切行わずに開発しています。独自実装部分は、公開されているドキュメントおよびGPL-3ソースコードのみを参照しています。
 
 本プロジェクトは非公式なものであり、Nine Gatesおよび「もちふぃった～」からのあらゆる承認、認可等も受けていません。
+
+## ライセンス
+
+本プロジェクトは GNU General Public License v3.0 (GPL-3) の下で公開されています。
+詳細は LICENSE ファイルをご確認ください。

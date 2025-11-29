@@ -1,18 +1,3 @@
-# ----------------------------------------------------------------------------
-# Core logic derived from source code originally released by Nine Gates.
-# Copyright (C) [2025] Nine Gates
-#
-# This file is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This file is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the accompanying LICENSE file for more details.
-# ----------------------------------------------------------------------------
-
 import bpy
 import numpy as np
 from mathutils import Vector, Matrix, Euler
