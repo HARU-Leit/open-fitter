@@ -9,19 +9,19 @@ from mathutils.bvhtree import BVHTree
 
 
 class _ContainingContext:
-    """内部状態をまとめるコンテキスト。外部APIは変えない。"""
+    """State holder for computing clothing containment."""
 
     def __init__(self, clothing_meshes, threshold):
         self.clothing_meshes = clothing_meshes
         self.threshold = threshold
 
-        # 中間生成物
+        # Intermediate state
         self.average_distances = {}  # {(container, contained): average_distance}
         self.best_containers = {}  # {contained: (container, avg_distance)}
         self.containing_objects = {}  # {container: [contained, ...]}
         self.parent_map = {}  # {child: parent}
         self.merged_containing_objects = {}  # {root: [contained, ...]}
-        self.roots_in_order = []  # ルートの挿入順を保持
+        self.roots_in_order = []  # insertion order for roots
         self.final_result = {}  # {root: [contained, ...]}
 
     # ---- 距離計測と平均距離算出 ----
@@ -222,15 +222,19 @@ class _ContainingContext:
 
 
 def find_containing_objects(clothing_meshes, threshold=0.02):
-    """
-    あるオブジェクトが他のオブジェクト全体を包含するペアを見つける
-    複数のオブジェクトに包含される場合は平均距離が最も小さいものにのみ包含される
-    
-    Parameters:
-        clothing_meshes: チェック対象のメッシュオブジェクトのリスト
-        threshold: 距離の閾値
-        
-    Returns:
-        dict: 包含するオブジェクトをキー、包含されるオブジェクトのリストを値とする辞書
-    """
-    return _ContainingContext(clothing_meshes, threshold).run()
+    """Find containment pairs between clothing meshes."""
+
+    ctx = _ContainingContext(clothing_meshes, threshold)
+
+    ctx.compute_average_distances()
+    ctx.choose_best_containers()
+    ctx.build_initial_containing_objects()
+
+    if not ctx.containing_objects:
+        return {}
+
+    ctx.build_parent_map()
+    ctx.merge_containing_objects()
+    ctx.detect_duplicates_and_log()
+
+    return ctx.final_result
