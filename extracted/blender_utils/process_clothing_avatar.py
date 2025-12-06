@@ -8,41 +8,43 @@ import bpy
 from blender_utils.adjust_armature_hips_position import adjust_armature_hips_position
 
 
-def process_clothing_avatar(input_fbx, clothing_avatar_data_path, hips_position=None, target_meshes=None, mesh_renderers=None):
-    """Process clothing avatar."""
-    
-    original_active = bpy.context.view_layer.objects.active
-    
-    # Import clothing FBX
-    bpy.ops.import_scene.fbx(filepath=input_fbx, use_anim=False)
-    
-    # 非アクティブなオブジェクトとその子を削除
-    def remove_inactive_objects():
+class _ClothingAvatarContext:
+    """State holder for clothing avatar import steps."""
+
+    def __init__(self, input_fbx, clothing_avatar_data_path, hips_position, target_meshes, mesh_renderers):
+        self.input_fbx = input_fbx
+        self.clothing_avatar_data_path = clothing_avatar_data_path
+        self.hips_position = hips_position
+        self.target_meshes = target_meshes
+        self.mesh_renderers = mesh_renderers
+        self.original_active = bpy.context.view_layer.objects.active
+        self.clothing_avatar_data = None
+        self.clothing_armature = None
+        self.clothing_meshes = []
+
+    def import_fbx(self):
+        bpy.ops.import_scene.fbx(filepath=self.input_fbx, use_anim=False)
+
+    def remove_inactive_objects(self):
         """非アクティブなオブジェクトとそのすべての子を削除する"""
         objects_to_remove = []
-        
+
         def is_object_inactive(obj):
-            """オブジェクトが非アクティブかどうかを判定"""
             # hide_viewport または hide_render が True の場合、非アクティブと判定
             return obj.hide_viewport or obj.hide_render or obj.hide_get()
-        
+
         def collect_children_recursive(obj, collected_list):
-            """オブジェクトのすべての子を再帰的に収集"""
             for child in obj.children:
                 collected_list.append(child)
                 collect_children_recursive(child, collected_list)
-        
-        # 非アクティブなオブジェクトを探す
+
         for obj in bpy.data.objects:
             if is_object_inactive(obj) and obj not in objects_to_remove:
                 objects_to_remove.append(obj)
-                # すべての子も収集
                 collect_children_recursive(obj, objects_to_remove)
-        
-        # 重複を削除
+
         objects_to_remove = list(set(objects_to_remove))
-        
-        # オブジェクトを削除
+
         for obj in objects_to_remove:
             obj_name = obj.name
             try:
@@ -50,126 +52,111 @@ def process_clothing_avatar(input_fbx, clothing_avatar_data_path, hips_position=
                 print(f"Removed inactive object: {obj_name}")
             except Exception as e:
                 print(f"Failed to remove object {obj_name}: {e}")
-    
-    remove_inactive_objects()
-    
-    # Load clothing avatar data
-    print(f"Loading clothing avatar data from {clothing_avatar_data_path}")
-    with open(clothing_avatar_data_path, 'r', encoding='utf-8') as f:
-        clothing_avatar_data = json.load(f)
-    
-    # Find clothing armature
-    clothing_armature = None
-    for obj in bpy.data.objects:
-        if obj.type == 'ARMATURE' and obj.name != "Armature.BaseAvatar":
-            clothing_armature = obj
-            break
-    
-    if not clothing_armature:
-        raise Exception("Clothing armature not found")
-    
-    # Find clothing meshes
-    clothing_meshes = []
-    for obj in bpy.data.objects:
-        if obj.type == 'MESH' and obj.name != "Body.BaseAvatar" and obj.name != "Body.BaseAvatar.RightOnly" and obj.name != "Body.BaseAvatar.LeftOnly":
-            # Check if this mesh has an armature modifier
-            has_armature = False
-            for modifier in obj.modifiers:
-                if modifier.type == 'ARMATURE':
-                    has_armature = True
-                    break
-            
-            # 頂点数が0のメッシュを除外
-            if has_armature and len(obj.data.vertices) > 0:
-                clothing_meshes.append(obj)
-            elif has_armature and len(obj.data.vertices) == 0:
-                print(f"Skipping mesh '{obj.name}': vertex count is 0")
-    
-    # フィルタリング: target_meshesが指定されている場合、それに含まれるメッシュのみを保持
-    if target_meshes:
-        target_mesh_list = [name for name in target_meshes.split(';')]
+
+    def load_avatar_data(self):
+        print(f"Loading clothing avatar data from {self.clothing_avatar_data_path}")
+        with open(self.clothing_avatar_data_path, 'r', encoding='utf-8') as f:
+            self.clothing_avatar_data = json.load(f)
+
+    def find_clothing_armature(self):
+        for obj in bpy.data.objects:
+            if obj.type == 'ARMATURE' and obj.name != "Armature.BaseAvatar":
+                self.clothing_armature = obj
+                break
+        if not self.clothing_armature:
+            raise Exception("Clothing armature not found")
+
+    def collect_clothing_meshes(self):
+        meshes = []
+        for obj in bpy.data.objects:
+            if obj.type == 'MESH' and obj.name not in (
+                "Body.BaseAvatar",
+                "Body.BaseAvatar.RightOnly",
+                "Body.BaseAvatar.LeftOnly",
+            ):
+                has_armature = any(modifier.type == 'ARMATURE' for modifier in obj.modifiers)
+                if has_armature and len(obj.data.vertices) > 0:
+                    meshes.append(obj)
+                elif has_armature and len(obj.data.vertices) == 0:
+                    print(f"Skipping mesh '{obj.name}': vertex count is 0")
+        self.clothing_meshes = meshes
+
+    def filter_target_meshes(self):
+        if not self.target_meshes:
+            return
+        target_mesh_list = [name for name in self.target_meshes.split(';')]
         print(f"Target mesh list: {target_mesh_list}")
         filtered_meshes = []
-        for obj in clothing_meshes:
+        for obj in self.clothing_meshes:
             if obj.name in target_mesh_list:
                 filtered_meshes.append(obj)
             else:
-                # 対象外のメッシュを削除
                 obj_name = obj.name
                 bpy.data.objects.remove(obj, do_unlink=True)
                 print(f"Removed non-target mesh: {obj_name}")
-        
         if not filtered_meshes:
-            raise Exception(f"No target meshes found. Specified: {target_meshes}")
-        
-        clothing_meshes = filtered_meshes
-    
-    # Set hips position if provided
-    if hips_position:
-        adjust_armature_hips_position(clothing_armature, hips_position, clothing_avatar_data)
-    
-    # Process mesh renderers if provided
-    if mesh_renderers:
-        print(f"Processing mesh renderers: {mesh_renderers}")
-        for mesh_name, parent_name in mesh_renderers.items():
-            # MeshRendererを持っていたオブジェクトと同じ名前を持つメッシュオブジェクトを探す
-            mesh_obj = None
-            for obj in bpy.data.objects:
-                if obj.type == 'MESH' and obj.name == mesh_name:
-                    mesh_obj = obj
-                    break
-            
-            if mesh_obj:
-                # Armatureモディファイアを持たず、親の名前がデータ内の親オブジェクトの名前と異なるかチェック
-                has_armature = False
-                for modifier in mesh_obj.modifiers:
-                    if modifier.type == 'ARMATURE':
-                        has_armature = True
-                        break
-                
-                current_parent_name = mesh_obj.parent.name if mesh_obj.parent else None
-                
-                if not has_armature and current_parent_name != parent_name:
-                    # データ内の親オブジェクトの名前と同じ名前を持つボーンをclothing_armatureから探す
-                    bone_found = False
-                    if parent_name in clothing_armature.data.bones:
-                        # ボーンが見つかった場合、そのボーンをメッシュオブジェクトの親にする
-                        # すべての選択を解除
-                        bpy.ops.object.select_all(action='DESELECT')
-                        
-                        # メッシュを選択
-                        mesh_obj.select_set(True)
-                        
-                        # アーマチュアをアクティブに設定
-                        bpy.context.view_layer.objects.active = clothing_armature
-                        clothing_armature.select_set(True)
-                        
-                        # ポーズモードに切り替えてボーンをアクティブに設定
-                        bpy.ops.object.mode_set(mode='POSE')
-                        clothing_armature.data.bones.active = clothing_armature.data.bones[parent_name]
-                        
-                        # オブジェクトモードに戻る
-                        bpy.ops.object.mode_set(mode='OBJECT')
-                        
-                        # ボーンペアレントを設定（keep_transformでワールド座標を保持）
-                        bpy.ops.object.parent_set(type='BONE', keep_transform=True)
-                        
-                        print(f"Set parent bone '{parent_name}' for mesh '{mesh_name}' (world transform preserved)")
-                        bone_found = True
-                        
-                        # 選択を解除
-                        bpy.ops.object.select_all(action='DESELECT')
-                    
-                    if not bone_found:
-                        print(f"Warning: Bone '{parent_name}' not found in clothing_armature for mesh '{mesh_name}'")
-                else:
-                    if has_armature:
-                        print(f"Skipping mesh '{mesh_name}': already has Armature modifier")
-                    else:
-                        print(f"Skipping mesh '{mesh_name}': parent already matches ('{current_parent_name}')")
-            else:
+            raise Exception(f"No target meshes found. Specified: {self.target_meshes}")
+        self.clothing_meshes = filtered_meshes
+
+    def set_hips_position(self):
+        if self.hips_position:
+            adjust_armature_hips_position(self.clothing_armature, self.hips_position, self.clothing_avatar_data)
+
+    def _set_parent_bone(self, mesh_obj, parent_name):
+        bpy.ops.object.select_all(action='DESELECT')
+        mesh_obj.select_set(True)
+        bpy.context.view_layer.objects.active = self.clothing_armature
+        self.clothing_armature.select_set(True)
+        bpy.ops.object.mode_set(mode='POSE')
+        self.clothing_armature.data.bones.active = self.clothing_armature.data.bones[parent_name]
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.parent_set(type='BONE', keep_transform=True)
+        print(f"Set parent bone '{parent_name}' for mesh '{mesh_obj.name}' (world transform preserved)")
+        bpy.ops.object.select_all(action='DESELECT')
+
+    def process_mesh_renderers(self):
+        if not self.mesh_renderers:
+            return
+        print(f"Processing mesh renderers: {self.mesh_renderers}")
+        for mesh_name, parent_name in self.mesh_renderers.items():
+            mesh_obj = next((obj for obj in bpy.data.objects if obj.type == 'MESH' and obj.name == mesh_name), None)
+            if not mesh_obj:
                 print(f"Warning: Mesh object '{mesh_name}' not found")
-    
-    bpy.context.view_layer.objects.active = original_active
-    
-    return clothing_meshes, clothing_armature, clothing_avatar_data
+                continue
+
+            has_armature = any(modifier.type == 'ARMATURE' for modifier in mesh_obj.modifiers)
+            current_parent_name = mesh_obj.parent.name if mesh_obj.parent else None
+
+            if has_armature or current_parent_name == parent_name:
+                if has_armature:
+                    print(f"Skipping mesh '{mesh_name}': already has Armature modifier")
+                else:
+                    print(f"Skipping mesh '{mesh_name}': parent already matches ('{current_parent_name}')")
+                continue
+
+            bone_found = parent_name in self.clothing_armature.data.bones
+            if bone_found:
+                self._set_parent_bone(mesh_obj, parent_name)
+            else:
+                print(f"Warning: Bone '{parent_name}' not found in clothing_armature for mesh '{mesh_name}'")
+
+    def restore_active(self):
+        bpy.context.view_layer.objects.active = self.original_active
+
+
+def process_clothing_avatar(input_fbx, clothing_avatar_data_path, hips_position=None, target_meshes=None, mesh_renderers=None):
+    """Process clothing avatar."""
+
+    ctx = _ClothingAvatarContext(input_fbx, clothing_avatar_data_path, hips_position, target_meshes, mesh_renderers)
+
+    ctx.import_fbx()
+    ctx.remove_inactive_objects()
+    ctx.load_avatar_data()
+    ctx.find_clothing_armature()
+    ctx.collect_clothing_meshes()
+    ctx.filter_target_meshes()
+    ctx.set_hips_position()
+    ctx.process_mesh_renderers()
+    ctx.restore_active()
+
+    return ctx.clothing_meshes, ctx.clothing_armature, ctx.clothing_avatar_data
