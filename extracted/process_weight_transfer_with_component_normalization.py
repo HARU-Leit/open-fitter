@@ -5,6 +5,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import bmesh
 import bpy
+from dataclasses import dataclass, field
+
 from algo_utils.create_vertex_neighbors_array import create_vertex_neighbors_array
 from algo_utils.custom_max_vertex_group_numpy import custom_max_vertex_group_numpy
 from algo_utils.get_humanoid_and_auxiliary_bone_groups import (
@@ -22,10 +24,35 @@ from mathutils import Vector
 from process_weight_transfer import process_weight_transfer
 
 
-def _apply_blend_shape_settings(base_obj, left_base_obj, right_base_obj, blend_shape_settings):
-    if not base_obj.data.shape_keys:
+@dataclass
+class WeightTransferContext:
+    target_obj: object
+    armature: object
+    base_avatar_data: dict
+    clothing_avatar_data: dict
+    field_path: str
+    clothing_armature: object
+    blend_shape_settings: list
+    cloth_metadata: dict | None = None
+    base_obj: object | None = None
+    left_base_obj: object | None = None
+    right_base_obj: object | None = None
+    existing_target_groups: set = field(default_factory=set)
+    original_vertex_weights: dict | None = None
+    component_patterns: dict | None = None
+    obb_data: list | None = None
+    neighbors_info: object | None = None
+    offsets: object | None = None
+    num_verts: int | None = None
+
+
+def _apply_blend_shape_settings(ctx: WeightTransferContext):
+    base_obj = ctx.base_obj
+    left_base_obj = ctx.left_base_obj
+    right_base_obj = ctx.right_base_obj
+    if not base_obj or not base_obj.data.shape_keys:
         return
-    for blend_shape_setting in blend_shape_settings:
+    for blend_shape_setting in ctx.blend_shape_settings:
         name = blend_shape_setting['name']
         value = blend_shape_setting['value']
         if name in base_obj.data.shape_keys.key_blocks:
@@ -35,48 +62,50 @@ def _apply_blend_shape_settings(base_obj, left_base_obj, right_base_obj, blend_s
             print(f"Set {name} to {value}")
 
 
-def _get_existing_target_groups(target_obj, base_avatar_data):
-    target_groups = get_humanoid_and_auxiliary_bone_groups(base_avatar_data)
-    return {vg.name for vg in target_obj.vertex_groups if vg.name in target_groups}
+def _get_existing_target_groups(ctx: WeightTransferContext):
+    target_groups = get_humanoid_and_auxiliary_bone_groups(ctx.base_avatar_data)
+    ctx.existing_target_groups = {vg.name for vg in ctx.target_obj.vertex_groups if vg.name in target_groups}
+    return ctx.existing_target_groups
 
 
-def _store_original_vertex_weights(target_obj, existing_target_groups):
+def _store_original_vertex_weights(ctx: WeightTransferContext):
     import time
     start_time = time.time()
     original_vertex_weights = {}
-    for vert_idx, vert in enumerate(target_obj.data.vertices):
+    for vert_idx, vert in enumerate(ctx.target_obj.data.vertices):
         weights = {}
-        for group_name in existing_target_groups:
+        for group_name in ctx.existing_target_groups:
             weight = 0.0
             for g in vert.groups:
-                if target_obj.vertex_groups[g.group].name == group_name:
+                if ctx.target_obj.vertex_groups[g.group].name == group_name:
                     weight = g.weight
                     break
             if weight > 0.0001:
                 weights[group_name] = weight
         original_vertex_weights[vert_idx] = weights
+    ctx.original_vertex_weights = original_vertex_weights
     print(f"元のウェイト保存時間: {time.time() - start_time:.2f}秒")
     return original_vertex_weights
 
 
-def _normalize_component_patterns(target_obj, component_patterns, existing_target_groups, base_avatar_data, clothing_armature):
+def _normalize_component_patterns(ctx: WeightTransferContext, component_patterns):
     import time
     start_time = time.time()
     new_component_patterns = {}
 
     for pattern, components in component_patterns.items():
-        if not any(group in existing_target_groups for group in pattern):
-            all_deform_groups = set(existing_target_groups)
-            if clothing_armature:
-                all_deform_groups.update(bone.name for bone in clothing_armature.data.bones)
+        if not any(group in ctx.existing_target_groups for group in pattern):
+            all_deform_groups = set(ctx.existing_target_groups)
+            if ctx.clothing_armature:
+                all_deform_groups.update(bone.name for bone in ctx.clothing_armature.data.bones)
 
-            non_humanoid_difference_group = target_obj.vertex_groups.get("NonHumanoidDifference")
+            non_humanoid_difference_group = ctx.target_obj.vertex_groups.get("NonHumanoidDifference")
             is_non_humanoid_difference_group = False
             max_weight = 0.0
             if non_humanoid_difference_group:
                 for component in components:
                     for vert_idx in component:
-                        vert = target_obj.data.vertices[vert_idx]
+                        vert = ctx.target_obj.data.vertices[vert_idx]
                         for g in vert.groups:
                             if g.group == non_humanoid_difference_group.index and g.weight > 0.0001:
                                 is_non_humanoid_difference_group = True
@@ -87,11 +116,11 @@ def _normalize_component_patterns(target_obj, component_patterns, existing_targe
                 count = 0
                 for component in components:
                     for vert_idx in component:
-                        vert = target_obj.data.vertices[vert_idx]
+                        vert = ctx.target_obj.data.vertices[vert_idx]
                         for g in vert.groups:
                             if g.group == non_humanoid_difference_group.index and g.weight == max_weight:
                                 for g2 in vert.groups:
-                                    if target_obj.vertex_groups[g2.group].name in all_deform_groups:
+                                    if ctx.target_obj.vertex_groups[g2.group].name in all_deform_groups:
                                         if g2.group not in max_avg_pattern:
                                             max_avg_pattern[g2.group] = g2.weight
                                         else:
@@ -103,29 +132,29 @@ def _normalize_component_patterns(target_obj, component_patterns, existing_targe
                         max_avg_pattern[group_name] = weight / count
                 for component in components:
                     for vert_idx in component:
-                        vert = target_obj.data.vertices[vert_idx]
+                        vert = ctx.target_obj.data.vertices[vert_idx]
                         for g in vert.groups:
-                            if g.group not in max_avg_pattern and target_obj.vertex_groups[g.group].name in all_deform_groups:
+                            if g.group not in max_avg_pattern and ctx.target_obj.vertex_groups[g.group].name in all_deform_groups:
                                 g.weight = 0.0
                         for max_group_id, max_weight in max_avg_pattern.items():
-                            group = target_obj.vertex_groups[max_group_id]
+                            group = ctx.target_obj.vertex_groups[max_group_id]
                             group.add([vert_idx], max_weight, 'REPLACE')
             continue
 
         original_pattern_dict = {group_name: weight for group_name, weight in pattern}
-        original_pattern = tuple(sorted((k, v) for k, v in original_pattern_dict.items() if k in existing_target_groups))
+        original_pattern = tuple(sorted((k, v) for k, v in original_pattern_dict.items() if k in ctx.existing_target_groups))
 
-        all_weights = {group: [] for group in existing_target_groups}
+        all_weights = {group: [] for group in ctx.existing_target_groups}
         all_vertices = set()
 
         for component in components:
             for vert_idx in component:
                 all_vertices.add(vert_idx)
-                vert = target_obj.data.vertices[vert_idx]
-                for group_name in existing_target_groups:
+                vert = ctx.target_obj.data.vertices[vert_idx]
+                for group_name in ctx.existing_target_groups:
                     weight = 0.0
                     for g in vert.groups:
-                        if target_obj.vertex_groups[g.group].name == group_name:
+                        if ctx.target_obj.vertex_groups[g.group].name == group_name:
                             weight = g.weight
                             break
                     all_weights[group_name].append(weight)
@@ -136,7 +165,7 @@ def _normalize_component_patterns(target_obj, component_patterns, existing_targe
 
         for vert_idx in all_vertices:
             for group_name, avg_weight in avg_weights.items():
-                group = target_obj.vertex_groups[group_name]
+                group = ctx.target_obj.vertex_groups[group_name]
                 if avg_weight > 0.0001:
                     group.add([vert_idx], avg_weight, 'REPLACE')
                 else:
@@ -146,34 +175,35 @@ def _normalize_component_patterns(target_obj, component_patterns, existing_targe
         new_component_patterns[(new_pattern, original_pattern)] = components
 
     print(f"コンポーネントパターン正規化時間: {time.time() - start_time:.2f}秒")
+    ctx.component_patterns = new_component_patterns
     return new_component_patterns
 
 
-def _collect_obb_data(target_obj, component_patterns, original_vertex_weights):
+def _collect_obb_data(ctx: WeightTransferContext):
     import time
     obb_data = []
 
     start_time = time.time()
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
-    target_obj.select_set(True)
-    bpy.context.view_layer.objects.active = target_obj
+    ctx.target_obj.select_set(True)
+    bpy.context.view_layer.objects.active = ctx.target_obj
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    eval_obj = target_obj.evaluated_get(depsgraph)
+    eval_obj = ctx.target_obj.evaluated_get(depsgraph)
     eval_mesh = eval_obj.data
 
     if len(eval_mesh.vertices) == 0:
-        print(f"警告: {target_obj.name} の評価済みメッシュに頂点がありません。OBB計算をスキップします。")
+        print(f"警告: {ctx.target_obj.name} の評価済みメッシュに頂点がありません。OBB計算をスキップします。")
         return obb_data
 
     all_rigid_component_vertices = set()
-    for (_, _), components in component_patterns.items():
+    for (_, _), components in ctx.component_patterns.items():
         for component in components:
             all_rigid_component_vertices.update(component)
 
     component_count = 0
-    for (new_pattern, original_pattern), components in component_patterns.items():
+    for (new_pattern, original_pattern), components in ctx.component_patterns.items():
         pattern_weights = {group_name: weight for group_name, weight in new_pattern}
         original_pattern_weights = {group_name: weight for group_name, weight in original_pattern}
 
@@ -217,7 +247,7 @@ def _collect_obb_data(target_obj, component_patterns, original_vertex_weights):
             obb['radii'] = [radius * 1.3 for radius in obb['radii']]
 
             vertices_in_obb = []
-            for vert_idx, vert in enumerate(target_obj.data.vertices):
+            for vert_idx, vert in enumerate(ctx.target_obj.data.vertices):
                 if vert_idx in all_rigid_component_vertices or vert_idx >= len(eval_mesh.vertices):
                     continue
                 try:
@@ -244,33 +274,37 @@ def _collect_obb_data(target_obj, component_patterns, original_vertex_weights):
             component_count += 1
 
     print(f"OBBデータ収集時間: {time.time() - start_time:.2f}秒")
+    ctx.obb_data = obb_data
     return obb_data
 
 
-def _process_obb_groups(target_obj, component_patterns, obb_data, original_vertex_weights):
+def _process_obb_groups(ctx: WeightTransferContext):
     import time
     start_time = time.time()
 
-    neighbors_info, offsets, num_verts = create_vertex_neighbors_array(target_obj, expand_distance=0.02, sigma=0.00659)
+    neighbors_info, offsets, num_verts = create_vertex_neighbors_array(ctx.target_obj, expand_distance=0.02, sigma=0.00659)
+    ctx.neighbors_info = neighbors_info
+    ctx.offsets = offsets
+    ctx.num_verts = num_verts
     print(f"頂点近傍リスト作成時間: {time.time() - start_time:.2f}秒")
 
     start_time = time.time()
     bpy.ops.object.mode_set(mode='EDIT')
 
-    for obb_idx, data in enumerate(obb_data):
+    for obb_idx, data in enumerate(ctx.obb_data):
         obb_start = time.time()
-        connected_group = target_obj.vertex_groups.new(name=f"Connected_{data['component_id']}")
+        connected_group = ctx.target_obj.vertex_groups.new(name=f"Connected_{data['component_id']}")
         print(f"    Connected頂点グループ作成: {connected_group.name}")
 
         bpy.ops.mesh.select_all(action='DESELECT')
-        bm = bmesh.from_edit_mesh(target_obj.data)
+        bm = bmesh.from_edit_mesh(ctx.target_obj.data)
         bm.verts.ensure_lookup_table()
 
         obb_vertex_select_start = time.time()
         for vert_idx in data['vertices_in_obb']:
             if vert_idx < len(bm.verts):
                 bm.verts[vert_idx].select = True
-        bmesh.update_edit_mesh(target_obj.data)
+        bmesh.update_edit_mesh(ctx.target_obj.data)
         print(f"    OBB内頂点選択時間: {time.time() - obb_vertex_select_start:.2f}秒")
 
         edge_loop_start = time.time()
@@ -288,10 +322,10 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
 
                 bpy.ops.mesh.select_all(action='DESELECT')
                 edge.select = True
-                bmesh.update_edit_mesh(target_obj.data)
+                bmesh.update_edit_mesh(ctx.target_obj.data)
                 bpy.ops.mesh.loop_multi_select(ring=False)
 
-                bm = bmesh.from_edit_mesh(target_obj.data)
+                bm = bmesh.from_edit_mesh(ctx.target_obj.data)
                 loop_verts = {v.index for v in bm.verts if v.select}
 
                 is_closed_loop = True
@@ -308,8 +342,8 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
                     pattern_weights = data['original_pattern_weights']
 
                     for vert_idx in loop_verts:
-                        if vert_idx in original_vertex_weights:
-                            orig_weights = original_vertex_weights[vert_idx]
+                        if vert_idx in ctx.original_vertex_weights:
+                            orig_weights = ctx.original_vertex_weights[vert_idx]
                             similarity_score = 0.0
                             total_weight = 0.0
 
@@ -329,18 +363,18 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
                         complete_loops.update(loop_verts)
 
             bpy.ops.mesh.select_all(action='DESELECT')
-            bm = bmesh.from_edit_mesh(target_obj.data)
+            bm = bmesh.from_edit_mesh(ctx.target_obj.data)
             for vert in bm.verts:
                 if vert.index in complete_loops:
                     vert.select = True
-            bmesh.update_edit_mesh(target_obj.data)
+            bmesh.update_edit_mesh(ctx.target_obj.data)
 
         print(f"    エッジループ検出時間: {time.time() - edge_loop_start:.2f}秒")
 
         select_more_start = time.time()
         for _ in range(1):
             bpy.ops.mesh.select_more()
-        bm = bmesh.from_edit_mesh(target_obj.data)
+        bm = bmesh.from_edit_mesh(ctx.target_obj.data)
         selected_verts = [v.index for v in bm.verts if v.select]
         print(f"    選択範囲拡大時間: {time.time() - select_more_start:.2f}秒")
 
@@ -360,11 +394,11 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
 
         smoothing_start = time.time()
         bpy.ops.object.select_all(action='DESELECT')
-        target_obj.select_set(True)
-        bpy.context.view_layer.objects.active = target_obj
+        ctx.target_obj.select_set(True)
+        bpy.context.view_layer.objects.active = ctx.target_obj
 
-        for i, group in enumerate(target_obj.vertex_groups):
-            target_obj.vertex_groups.active_index = i
+        for i, group in enumerate(ctx.target_obj.vertex_groups):
+            ctx.target_obj.vertex_groups.active_index = i
             if group.name == f"Connected_{data['component_id']}":
                 break
 
@@ -375,22 +409,22 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
         print(f"    標準スムージング時間: {time.time() - smooth_op_start:.2f}秒")
 
         custom_smooth_start = time.time()
-        custom_max_vertex_group_numpy(target_obj, f"Connected_{data['component_id']}", neighbors_info, offsets, num_verts, repeat=3, weight_factor=1.0)
+        custom_max_vertex_group_numpy(ctx.target_obj, f"Connected_{data['component_id']}", ctx.neighbors_info, ctx.offsets, ctx.num_verts, repeat=3, weight_factor=1.0)
         print(f"    カスタムスムージング時間: {time.time() - custom_smooth_start:.2f}秒")
 
         bpy.ops.object.mode_set(mode='OBJECT')
         print(f"    スムージング処理時間: {time.time() - smoothing_start:.2f}秒")
 
         decay_start = time.time()
-        connected_group = target_obj.vertex_groups[f"Connected_{data['component_id']}"]
+        connected_group = ctx.target_obj.vertex_groups[f"Connected_{data['component_id']}"]
         original_pattern_weights = data['original_pattern_weights']
 
-        for vert_idx, vert in enumerate(target_obj.data.vertices):
+        for vert_idx, vert in enumerate(ctx.target_obj.data.vertices):
             if vert_idx in data['component_vertices']:
                 connected_group.add([vert_idx], 0.0, 'REPLACE')
                 continue
-            if vert_idx in original_vertex_weights:
-                orig_weights = original_vertex_weights[vert_idx]
+            if vert_idx in ctx.original_vertex_weights:
+                orig_weights = ctx.original_vertex_weights[vert_idx]
                 similarity_score = 0.0
                 total_weight = 0.0
 
@@ -405,7 +439,7 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
                     decay_factor = 1.0 - min(normalized_score * 3.33333, 1.0)
 
                     connected_weight = 0.0
-                    for g in target_obj.data.vertices[vert_idx].groups:
+                    for g in ctx.target_obj.data.vertices[vert_idx].groups:
                         if g.group == connected_group.index:
                             connected_weight = g.weight
                             break
@@ -418,27 +452,27 @@ def _process_obb_groups(target_obj, component_patterns, obb_data, original_verte
                     connected_group.add([vert_idx], 0.0, 'REPLACE')
         print(f"    ウェイト減衰時間: {time.time() - decay_start:.2f}秒")
 
-        print(f"  OBB {obb_idx+1}/{len(obb_data)} 処理時間: {time.time() - obb_start:.2f}秒")
+        print(f"  OBB {obb_idx+1}/{len(ctx.obb_data)} 処理時間: {time.time() - obb_start:.2f}秒")
 
-        if obb_idx < len(obb_data) - 1:
+        if obb_idx < len(ctx.obb_data) - 1:
             bpy.ops.object.mode_set(mode='EDIT')
 
     bpy.ops.object.mode_set(mode='OBJECT')
     print(f"OBB処理時間: {time.time() - start_time:.2f}秒")
 
 
-def _synthesize_weights(target_obj, component_patterns, obb_data, existing_target_groups):
+def _synthesize_weights(ctx: WeightTransferContext):
     import time
     start_time = time.time()
-    connected_groups = [vg for vg in target_obj.vertex_groups if vg.name.startswith("Connected_")]
+    connected_groups = [vg for vg in ctx.target_obj.vertex_groups if vg.name.startswith("Connected_")]
 
     if not connected_groups:
         print(f"ウェイト合成時間: {time.time() - start_time:.2f}秒")
         return
 
-    for vert in target_obj.data.vertices:
+    for vert in ctx.target_obj.data.vertices:
         skip = False
-        for (_, _), components in component_patterns.items():
+        for (_, _), components in ctx.component_patterns.items():
             for component in components:
                 if vert.index in component:
                     skip = True
@@ -460,7 +494,7 @@ def _synthesize_weights(target_obj, component_patterns, obb_data, existing_targe
 
             if weight > 0:
                 component_id = int(connected_group.name.split('_')[1])
-                for data in obb_data:
+                for data in ctx.obb_data:
                     if data['component_id'] == component_id:
                         pattern_tuple = tuple(sorted((k, v) for k, v in data['pattern_weights'].items() if v > 0.0001))
                         connected_weights[pattern_tuple] = weight
@@ -480,9 +514,9 @@ def _synthesize_weights(target_obj, component_patterns, obb_data, existing_targe
 
         factor = min(total_weight, 1.0)
         existing_weights = {}
-        for group_name in existing_target_groups:
-            if group_name in target_obj.vertex_groups:
-                group = target_obj.vertex_groups[group_name]
+        for group_name in ctx.existing_target_groups:
+            if group_name in ctx.target_obj.vertex_groups:
+                group = ctx.target_obj.vertex_groups[group_name]
                 weight = 0.0
                 for g in vert.groups:
                     if g.group == group.index:
@@ -492,7 +526,7 @@ def _synthesize_weights(target_obj, component_patterns, obb_data, existing_targe
 
         new_weights = {}
         for group_name, weight in existing_weights.items():
-            if group_name in target_obj.vertex_groups and group_name in existing_target_groups:
+            if group_name in ctx.target_obj.vertex_groups and group_name in ctx.existing_target_groups:
                 new_weights[group_name] = weight * (1.0 - factor)
 
         for pattern, weight in connected_weights.items():
@@ -500,14 +534,14 @@ def _synthesize_weights(target_obj, component_patterns, obb_data, existing_targe
             if total_weight < 1.0:
                 normalized_weight = weight
             for group_name, value in pattern:
-                if group_name in target_obj.vertex_groups and group_name in existing_target_groups:
+                if group_name in ctx.target_obj.vertex_groups and group_name in ctx.existing_target_groups:
                     compornent_weight = value * normalized_weight
                     new_weights[group_name] = new_weights[group_name] + compornent_weight
 
         for group_name, weight in new_weights.items():
             if weight > 1.0:
                 weight = 1.0
-            group = target_obj.vertex_groups[group_name]
+            group = ctx.target_obj.vertex_groups[group_name]
             group.add([vert.index], weight, 'REPLACE')
 
     print(f"ウェイト合成時間: {time.time() - start_time:.2f}秒")
@@ -531,43 +565,55 @@ def process_weight_transfer_with_component_normalization(target_obj, armature, b
 
     print(f"process_weight_transfer_with_component_normalization 処理開始: {target_obj.name}")
 
+    ctx = WeightTransferContext(
+        target_obj=target_obj,
+        armature=armature,
+        base_avatar_data=base_avatar_data,
+        clothing_avatar_data=clothing_avatar_data,
+        field_path=field_path,
+        clothing_armature=clothing_armature,
+        blend_shape_settings=blend_shape_settings,
+        cloth_metadata=cloth_metadata,
+    )
+
     start_time = time.time()
-    base_obj = bpy.data.objects.get("Body.BaseAvatar")
-    if not base_obj:
+    ctx.base_obj = bpy.data.objects.get("Body.BaseAvatar")
+    if not ctx.base_obj:
         raise Exception("Base avatar mesh (Body.BaseAvatar) not found")
 
-    left_base_obj = bpy.data.objects["Body.BaseAvatar.LeftOnly"]
-    right_base_obj = bpy.data.objects["Body.BaseAvatar.RightOnly"]
+    ctx.left_base_obj = bpy.data.objects["Body.BaseAvatar.LeftOnly"]
+    ctx.right_base_obj = bpy.data.objects["Body.BaseAvatar.RightOnly"]
 
     print(f"Set blend_shape_settings: {blend_shape_settings}")
-    _apply_blend_shape_settings(base_obj, left_base_obj, right_base_obj, blend_shape_settings)
+    _apply_blend_shape_settings(ctx)
 
     depsgraph = bpy.context.evaluated_depsgraph_get()
     eval_target_obj = target_obj.evaluated_get(depsgraph)
     eval_mesh = eval_target_obj.data
 
-    existing_target_groups = _get_existing_target_groups(target_obj, base_avatar_data)
+    existing_target_groups = _get_existing_target_groups(ctx)
     print(f"準備時間: {time.time() - start_time:.2f}秒")
 
     start_time = time.time()
     component_patterns = group_components_by_weight_pattern(target_obj, base_avatar_data, clothing_armature)
+    ctx.component_patterns = component_patterns
     print(f"コンポーネントパターン抽出時間: {time.time() - start_time:.2f}秒")
 
-    original_vertex_weights = _store_original_vertex_weights(target_obj, existing_target_groups)
+    original_vertex_weights = _store_original_vertex_weights(ctx)
 
     start_time = time.time()
     process_weight_transfer(target_obj, armature, base_avatar_data, clothing_avatar_data, field_path, clothing_armature, cloth_metadata)
     print(f"通常ウェイト転送処理時間: {time.time() - start_time:.2f}秒")
 
-    component_patterns = _normalize_component_patterns(target_obj, component_patterns, existing_target_groups, base_avatar_data, clothing_armature)
+    component_patterns = _normalize_component_patterns(ctx, component_patterns)
 
     if component_patterns:
-        obb_data = _collect_obb_data(target_obj, component_patterns, original_vertex_weights)
+        obb_data = _collect_obb_data(ctx)
         if not obb_data:
             print("警告: 有効なOBBデータがありません。処理をスキップします。")
             return
 
-        _process_obb_groups(target_obj, component_patterns, obb_data, original_vertex_weights)
-        _synthesize_weights(target_obj, component_patterns, obb_data, existing_target_groups)
+        _process_obb_groups(ctx)
+        _synthesize_weights(ctx)
 
     print(f"総処理時間: {time.time() - start_total:.2f}秒")
