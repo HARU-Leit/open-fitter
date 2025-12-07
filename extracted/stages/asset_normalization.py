@@ -17,7 +17,7 @@ from algo_utils.remove_empty_vertex_groups import remove_empty_vertex_groups
 from blender_utils.apply_bone_name_conversion import apply_bone_name_conversion
 from blender_utils.setup_weight_transfer import setup_weight_transfer
 from is_A_pose import is_A_pose
-from math_utils.normalize_bone_weights import normalize_bone_weights
+from math_utils.weight_utils import normalize_bone_weights
 from math_utils.normalize_clothing_bone_names import normalize_clothing_bone_names
 from update_base_avatar_weights import update_base_avatar_weights
 

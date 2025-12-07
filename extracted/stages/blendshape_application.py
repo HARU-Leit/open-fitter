@@ -14,7 +14,7 @@ for _p in (_PARENT_DIR,):
 from algo_utils.remove_empty_vertex_groups import remove_empty_vertex_groups
 from apply_blendshape_deformation_fields import apply_blendshape_deformation_fields
 from blender_utils.reset_utils import reset_shape_keys
-from math_utils.normalize_vertex_weights import normalize_vertex_weights
+from math_utils.weight_utils import normalize_vertex_weights
 
 
 class BlendShapeApplicationStage:

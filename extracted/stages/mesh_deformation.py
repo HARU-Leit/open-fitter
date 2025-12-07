@@ -25,7 +25,7 @@ from blender_utils.subdivision_utils import subdivide_breast_faces
 from blender_utils.subdivision_utils import subdivide_long_edges
 from blender_utils.triangulate_mesh import triangulate_mesh
 from io_utils.vertex_weights_io import restore_vertex_weights, save_vertex_weights
-from math_utils.normalize_vertex_weights import normalize_vertex_weights
+from math_utils.weight_utils import normalize_vertex_weights
 from process_mesh_with_connected_components_inline import (
     process_mesh_with_connected_components_inline,
 )

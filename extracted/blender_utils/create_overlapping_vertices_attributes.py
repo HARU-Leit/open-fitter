@@ -9,7 +9,7 @@ from algo_utils.check_edge_direction_similarity import check_edge_direction_simi
 from algo_utils.get_humanoid_and_auxiliary_bone_groups import (
     get_humanoid_and_auxiliary_bone_groups,
 )
-from math_utils.calculate_weight_pattern_similarity import (
+from math_utils.weight_utils import (
     calculate_weight_pattern_similarity,
 )
 from mathutils.kdtree import KDTree
