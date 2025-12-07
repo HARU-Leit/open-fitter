@@ -12,7 +12,7 @@ from algo_utils.bone_group_utils import (
 )
 from blender_utils.mesh_utils import reset_bone_weights
 from create_side_weight_groups import create_side_weight_groups
-from io_utils.weights_io import store_weights
+from io_utils.io_utils import store_weights
 
 
 def prepare_groups_and_weights(context):

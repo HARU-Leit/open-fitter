@@ -11,7 +11,7 @@ from apply_field_delta_with_rigid_transform_single import (
 from blender_utils.blendshape_utils import create_blendshape_mask
 from common_utils.get_source_label import get_source_label
 from execute_transitions_with_cache import execute_transitions_with_cache
-from io_utils.shape_key_state import restore_shape_key_state, save_shape_key_state
+from io_utils.io_utils import restore_shape_key_state, save_shape_key_state
 from blender_utils.blendshape_utils import TransitionCache
 
 

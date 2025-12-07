@@ -7,7 +7,7 @@ import math
 
 import bpy
 from blender_utils.bone_utils import get_humanoid_bone_hierarchy
-from io_utils.avatar_data import load_avatar_data
+from io_utils.io_utils import load_avatar_data
 from math_utils.geometry_utils import list_to_matrix
 from mathutils import Euler, Matrix, Vector
 

@@ -2,7 +2,7 @@ import os
 import sys
 
 from blender_utils.bone_utils import get_child_bones_recursive
-from io_utils.load_deformation_field_num_steps import load_deformation_field_num_steps
+from io_utils.io_utils import load_deformation_field_num_steps
 import bpy
 import numpy as np
 import os

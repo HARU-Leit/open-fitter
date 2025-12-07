@@ -8,7 +8,7 @@ import time
 
 import bpy
 from blender_utils.mesh_utils import reset_bone_weights
-from io_utils.weights_io import restore_weights
+from io_utils.io_utils import restore_weights
 from stages.attempt_weight_transfer import attempt_weight_transfer
 
 

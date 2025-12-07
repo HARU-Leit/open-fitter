@@ -10,7 +10,7 @@ from blender_utils.deformation_utils import (
 )
 from blender_utils.blendshape_utils import create_blendshape_mask
 from blender_utils.armature_utils import get_armature_from_modifier
-from io_utils.shape_key_state import restore_shape_key_state, save_shape_key_state
+from io_utils.io_utils import restore_shape_key_state, save_shape_key_state
 from math_utils.geometry_utils import (
     apply_similarity_transform_to_points,
 )

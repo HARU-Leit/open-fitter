@@ -28,7 +28,7 @@ from duplicate_mesh_with_partial_weights import duplicate_mesh_with_partial_weig
 from generate_temp_shapekeys_for_weight_transfer import (
     generate_temp_shapekeys_for_weight_transfer,
 )
-from io_utils.load_vertex_group import load_vertex_group
+from io_utils.io_utils import load_vertex_group
 
 
 class WeightTransferPreparationStage:

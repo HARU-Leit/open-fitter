@@ -11,8 +11,8 @@ from blender_utils.bone_utils import (
     clear_humanoid_bone_relations_preserve_pose,
 )
 from blender_utils.bone_utils import get_humanoid_bone_hierarchy
-from io_utils.avatar_data import load_avatar_data
-from io_utils.pose_state import store_pose_globally
+from io_utils.io_utils import load_avatar_data
+from io_utils.io_utils import store_pose_globally
 from math_utils.geometry_utils import list_to_matrix
 
 

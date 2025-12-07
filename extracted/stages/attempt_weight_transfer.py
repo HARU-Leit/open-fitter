@@ -11,7 +11,7 @@ from algo_utils.bone_group_utils import (
 from create_distance_normal_based_vertex_group import (
     create_distance_normal_based_vertex_group,
 )
-from io_utils.weights_io import restore_weights, store_weights
+from io_utils.io_utils import restore_weights, store_weights
 
 
 def attempt_weight_transfer(context, source_obj, vertex_group, max_distance_try=0.2, max_distance_tried=0.0):

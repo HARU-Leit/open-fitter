@@ -20,8 +20,8 @@ from blender_utils.blendshape_utils import (
 )
 from blender_utils.bone_utils import round_bone_coordinates
 from blender_utils.blendshape_utils import set_highheel_shapekey_values
-from io_utils.file_io import export_fbx
-from misc_utils.update_cloth_metadata import update_cloth_metadata
+from io_utils.io_utils import export_fbx
+from io_utils.io_utils import update_cloth_metadata
 
 
 class ExportPreparationStage:

@@ -18,8 +18,8 @@ for _p in (_PARENT_DIR, _GRANDPARENT_DIR):
 from blender_utils.weight_transfer_utils import (
     transfer_weights_from_nearest_vertex,
 )
-from io_utils.file_io import import_base_fbx
-from io_utils.load_vertex_group import load_vertex_group
+from io_utils.io_utils import import_base_fbx
+from io_utils.io_utils import load_vertex_group
 
 
 class TemplateAdjustmentStage:

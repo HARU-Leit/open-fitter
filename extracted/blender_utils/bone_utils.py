@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from common_utils.strip_numeric_suffix import strip_numeric_suffix
-from io_utils.avatar_data import load_avatar_data
+from io_utils.io_utils import load_avatar_data
 from typing import Dict
 from typing import Dict, Tuple
 import bpy
