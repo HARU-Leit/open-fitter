@@ -4,8 +4,31 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import bpy
-from blender_utils.apply_all_shapekeys import apply_all_shapekeys
-from blender_utils.apply_modifiers import apply_modifiers
+
+
+def apply_modifiers(obj):
+    """モディファイアを適用"""
+    bpy.context.view_layer.objects.active = obj
+    for modifier in obj.modifiers[:]:  # スライスを使用してリストのコピーを作成
+        try:
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+        except Exception as e:
+            print(f"Failed to apply modifier {modifier.name}: {e}")
+
+
+def apply_all_shapekeys(obj):
+    """オブジェクトの全シェイプキーを適用する"""
+    if not obj.data.shape_keys:
+        return
+    
+    # 基底シェイプキーは常にインデックス0
+    if obj.active_shape_key_index == 0 and len(obj.data.shape_keys.key_blocks) > 1:
+        obj.active_shape_key_index = 1
+    else:
+        obj.active_shape_key_index = 0
+
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
 
 
 def apply_modifiers_keep_shapekeys_with_temp(obj):
