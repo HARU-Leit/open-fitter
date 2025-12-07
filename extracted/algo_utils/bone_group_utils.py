@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from blender_utils.get_evaluated_mesh import get_evaluated_mesh
+from blender_utils.mesh_utils import get_evaluated_mesh
 from scipy.spatial import cKDTree
 import bpy
 import numpy as np

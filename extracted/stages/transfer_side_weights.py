@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import time
 
 import bpy
-from blender_utils.reset_utils import reset_bone_weights
+from blender_utils.mesh_utils import reset_bone_weights
 from io_utils.weights_io import restore_weights
 from stages.attempt_weight_transfer import attempt_weight_transfer
 

@@ -7,7 +7,7 @@ import math
 import bpy
 import mathutils
 import numpy as np
-from blender_utils.apply_modifiers_keep_shapekeys_with_temp import (
+from blender_utils.mesh_utils import (
     apply_modifiers_keep_shapekeys_with_temp,
 )
 from blender_utils.armature_utils import set_armature_modifier_visibility

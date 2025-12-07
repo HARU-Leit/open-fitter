@@ -10,8 +10,8 @@ import mathutils
 import numpy as np
 from algo_utils.vertex_group_utils import apply_max_filter_to_vertex_group
 from algo_utils.vertex_group_utils import apply_smoothing_to_vertex_group
-from blender_utils.clear_mesh_cache import clear_mesh_cache
-from blender_utils.get_evaluated_mesh import get_evaluated_mesh
+from blender_utils.mesh_utils import clear_mesh_cache
+from blender_utils.mesh_utils import get_evaluated_mesh
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 from scipy.spatial import cKDTree

@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import bpy
-from blender_utils.apply_modifiers_keep_shapekeys_with_temp import (
+from blender_utils.mesh_utils import (
     apply_modifiers_keep_shapekeys_with_temp,
 )
 from blender_utils.armature_utils import (

@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from algo_utils.bone_group_utils import (
     get_humanoid_and_auxiliary_bone_groups,
 )
-from blender_utils.get_evaluated_mesh import get_evaluated_mesh
+from blender_utils.mesh_utils import get_evaluated_mesh
 from blender_utils.subdivision_utils import subdivide_selected_vertices
 from dataclasses import dataclass
 from mathutils import Vector

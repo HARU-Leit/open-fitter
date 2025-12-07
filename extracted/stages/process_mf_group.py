@@ -8,7 +8,7 @@ import math
 
 import bpy
 import mathutils
-from blender_utils.reset_utils import reset_bone_weights
+from blender_utils.mesh_utils import reset_bone_weights
 from io_utils.shape_key_state import restore_shape_key_state, save_shape_key_state
 from io_utils.weights_io import restore_weights, store_weights
 from stages.attempt_weight_transfer import attempt_weight_transfer

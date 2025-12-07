@@ -7,7 +7,7 @@ import time
 
 import bpy
 import mathutils
-from blender_utils.get_evaluated_mesh import get_evaluated_mesh
+from blender_utils.mesh_utils import get_evaluated_mesh
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 from scipy.spatial import cKDTree
