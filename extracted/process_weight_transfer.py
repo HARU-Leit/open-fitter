@@ -18,6 +18,9 @@ from blender_utils.adjust_hand_weights import adjust_hand_weights
 from blender_utils.create_blendshape_mask import create_blendshape_mask
 from blender_utils.get_evaluated_mesh import get_evaluated_mesh
 from blender_utils.merge_weights_to_parent import merge_weights_to_parent
+from blender_utils.propagate_weights_to_side_vertices import (
+    propagate_weights_to_side_vertices,
+)
 from blender_utils.reset_bone_weights import reset_bone_weights
 from create_distance_normal_based_vertex_group import (
     create_distance_normal_based_vertex_group,
@@ -256,92 +259,15 @@ class WeightTransferContext:
             return 0.0
         return 0.0
 
-    def propagate_weights_to_side_vertices(self, max_iterations=100):
-        bm = bmesh.new()
-        bm.from_mesh(self.target_obj.data)
-        bm.verts.ensure_lookup_table()
-
-        left_group = self.target_obj.vertex_groups.get("LeftSideWeights")
-        right_group = self.target_obj.vertex_groups.get("RightSideWeights")
-
-        all_deform_groups = set(self.bone_groups)
-        if self.clothing_armature:
-            all_deform_groups.update(bone.name for bone in self.clothing_armature.data.bones)
-
-        def get_side_weight(vert_idx, group):
-            if not group:
-                return 0.0
-            try:
-                for g in self.target_obj.data.vertices[vert_idx].groups:
-                    if g.group == group.index:
-                        return g.weight
-            except Exception:
-                return 0.0
-            return 0.0
-
-        def has_bone_weights(vert_idx):
-            for g in self.target_obj.data.vertices[vert_idx].groups:
-                if self.target_obj.vertex_groups[g.group].name in all_deform_groups:
-                    return True
-            return False
-
-        vertices_to_process = set()
-        for vert in self.target_obj.data.vertices:
-            if (get_side_weight(vert.index, left_group) > 0 or get_side_weight(vert.index, right_group) > 0) and not has_bone_weights(vert.index):
-                vertices_to_process.add(vert.index)
-
-        if not vertices_to_process:
-            bm.free()
-            return
-
-        print(f"Found {len(vertices_to_process)} vertices without bone weights but with side weights")
-
-        iteration = 0
-        while vertices_to_process and iteration < max_iterations:
-            propagated_this_iteration = set()
-            for vert_idx in vertices_to_process:
-                vert = bm.verts[vert_idx]
-                neighbors_with_weights = []
-                for edge in vert.link_edges:
-                    other = edge.other_vert(vert)
-                    if has_bone_weights(other.index):
-                        distance = (vert.co - other.co).length
-                        neighbors_with_weights.append((other.index, distance))
-                if neighbors_with_weights:
-                    closest_vert_idx = min(neighbors_with_weights, key=lambda x: x[1])[0]
-                    for group in self.target_obj.vertex_groups:
-                        if group.name in all_deform_groups:
-                            weight = 0.0
-                            for g in self.target_obj.data.vertices[closest_vert_idx].groups:
-                                if g.group == group.index:
-                                    weight = g.weight
-                                    break
-                            if weight > 0:
-                                group.add([vert_idx], weight, "REPLACE")
-                    propagated_this_iteration.add(vert_idx)
-
-            if not propagated_this_iteration:
-                break
-
-            print(f"Iteration {iteration + 1}: Propagated weights to {len(propagated_this_iteration)} vertices")
-            vertices_to_process -= propagated_this_iteration
-            iteration += 1
-
-        if vertices_to_process:
-            print(f"Restoring original weights for {len(vertices_to_process)} remaining vertices")
-            for vert_idx in vertices_to_process:
-                if vert_idx in self.original_humanoid_weights:
-                    for group in self.target_obj.vertex_groups:
-                        if group.name in all_deform_groups:
-                            try:
-                                group.remove([vert_idx])
-                            except RuntimeError:
-                                continue
-                    for group_name, weight in self.original_humanoid_weights[vert_idx].items():
-                        if group_name in self.target_obj.vertex_groups:
-                            self.target_obj.vertex_groups[group_name].add([vert_idx], weight, "REPLACE")
-
-        bm.free()
+    def _propagate_weights_to_side_vertices(self, max_iterations=100):
+        """側面ウェイトを持つがボーンウェイトを持たない頂点にウェイトを伝播する。"""
+        propagate_weights_to_side_vertices(
+            target_obj=self.target_obj,
+            bone_groups=self.bone_groups,
+            original_humanoid_weights=self.original_humanoid_weights,
+            clothing_armature=self.clothing_armature,
+            max_iterations=max_iterations,
+        )
 
     def prepare_groups_and_weights(self):
         if "InpaintMask" not in self.target_obj.vertex_groups:
@@ -958,7 +884,7 @@ class WeightTransferContext:
         print(f"  手のウェイト調整: {hand_weights_time:.2f}秒")
 
         propagate_time_start = time.time()
-        self.propagate_weights_to_side_vertices()
+        self._propagate_weights_to_side_vertices()
         propagate_time = time.time() - propagate_time_start
         print(f"  側面頂点へのウェイト伝播: {propagate_time:.2f}秒")
 
