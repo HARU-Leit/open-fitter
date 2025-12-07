@@ -6,7 +6,9 @@ import bpy
 from processing_context import ProcessingContext
 from stages.asset_loading import AssetLoadingStage
 from stages.asset_normalization import AssetNormalizationStage
-from stages.mesh_preparation import MeshPreparationStage
+from stages.blendshape_application import BlendShapeApplicationStage
+from stages.mesh_deformation import MeshDeformationStage
+from stages.pose_application import PoseApplicationStage
 from stages.scene_finalization import SceneFinalizationStage
 from stages.template_adjustment import TemplateAdjustmentStage
 from stages.weight_transfer import WeightTransferStage
@@ -22,9 +24,11 @@ class OutfitRetargetPipeline:
         1. AssetLoading: ファイル読み込み・FBXインポート
         2. AssetNormalization: アセット正規化・初期設定
         3. TemplateAdjustment: Template固有補正（条件付き）
-        4. MeshPreparation: メッシュ変形・サイクル1
-        5. WeightTransfer: ウェイト転送・サイクル2
-        6. SceneFinalization: 仕上げ・FBXエクスポート
+        4. BlendShapeApplication: BlendShape変形フィールド適用
+        5. PoseApplication: ポーズ適用・頂点属性設定
+        6. MeshDeformation: メッシュ変形処理（サイクル1）
+        7. WeightTransfer: ウェイト転送・サイクル2
+        8. SceneFinalization: 仕上げ・FBXエクスポート
     """
     
     # ProcessingContextに委譲する属性のリスト
@@ -35,7 +39,8 @@ class OutfitRetargetPipeline:
         'use_subdivision', 'use_triangulation', 'propagated_groups_map',
         'original_humanoid_bones', 'original_auxiliary_bones',
         'is_A_pose', 'blend_shape_labels',
-        'base_weights_time', 'cycle1_end_time', 'cycle2_post_end',
+        'base_weights_time', 'blendshape_time', 'pose_time',
+        'cycle1_end_time', 'cycle2_post_end',
         'time_module', 'start_time'
     })
 
@@ -80,8 +85,12 @@ class OutfitRetargetPipeline:
             # Template専用の調整処理
             if not TemplateAdjustmentStage(self).run():
                 return None
-            # サイクル1: メッシュ前処理と形状調整
-            MeshPreparationStage(self).run()
+            # BlendShape変形フィールド適用
+            BlendShapeApplicationStage(self).run()
+            # ポーズ適用・頂点属性設定
+            PoseApplicationStage(self).run()
+            # サイクル1: メッシュ変形処理
+            MeshDeformationStage(self).run()
             # サイクル2: ウェイト転送と後処理
             WeightTransferStage(self).run()
             # 最終仕上げとFBXエクスポート
