@@ -9,11 +9,11 @@ from blender_utils.deformation_utils import (
     batch_process_vertices_multi_step,
 )
 from blender_utils.armature_utils import get_armature_from_modifier
-from math_utils.transform_utils import (
+from math_utils.geometry_utils import (
     apply_similarity_transform_to_points,
 )
-from math_utils.transform_utils import calculate_inverse_pose_matrix
-from math_utils.transform_utils import (
+from math_utils.geometry_utils import calculate_inverse_pose_matrix
+from math_utils.geometry_utils import (
     calculate_optimal_similarity_transform,
 )
 from mathutils import Matrix, Vector

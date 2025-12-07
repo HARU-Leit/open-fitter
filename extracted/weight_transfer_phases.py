@@ -14,7 +14,7 @@ from algo_utils.bone_group_utils import (
     get_humanoid_and_auxiliary_bone_groups,
 )
 from math_utils.geometry_utils import calculate_component_size
-from math_utils.obb_utils import calculate_obb_from_points
+from math_utils.geometry_utils import calculate_obb_from_points
 from algo_utils.component_utils import (
     cluster_components_by_adaptive_distance,
 )

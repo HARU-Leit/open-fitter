@@ -6,7 +6,7 @@ from algo_utils.bone_group_utils import (
 )
 from dataclasses import dataclass
 from math_utils.geometry_utils import check_mesh_obb_intersection
-from math_utils.obb_utils import calculate_obb_from_points
+from math_utils.geometry_utils import calculate_obb_from_points
 from mathutils import Vector
 import bmesh
 import bpy

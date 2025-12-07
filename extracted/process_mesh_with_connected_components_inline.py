@@ -9,7 +9,7 @@ from apply_field_delta_with_rigid_transform import (
 )
 from apply_symmetric_field_delta import apply_symmetric_field_delta
 from math_utils.weight_utils import calculate_distance_based_weights
-from math_utils.obb_utils import calculate_obb_from_object
+from math_utils.geometry_utils import calculate_obb_from_object
 from math_utils.geometry_utils import check_mesh_obb_intersection
 from misc_utils.separate_and_combine_components import separate_and_combine_components
 from process_blendshape_fields_with_rigid_transform import (
