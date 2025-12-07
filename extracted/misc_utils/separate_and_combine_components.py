@@ -9,7 +9,7 @@ import bpy
 import numpy as np
 from algo_utils.vertex_group_utils import check_uniform_weights
 from algo_utils.component_utils import find_connected_components
-from blender_utils.generate_weight_hash import generate_weight_hash
+from math_utils.weight_utils import generate_weight_hash
 from math_utils.geometry_utils import calculate_component_size
 from math_utils.obb_utils import calculate_obb
 from algo_utils.component_utils import (

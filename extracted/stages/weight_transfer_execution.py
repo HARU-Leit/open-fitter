@@ -11,7 +11,7 @@ for _p in (_PARENT_DIR,):
     if _p not in sys.path:
         sys.path.append(_p)
 
-from math_utils.normalize_overlapping_vertices_weights import (
+from math_utils.weight_utils import (
     normalize_overlapping_vertices_weights,
 )
 from process_weight_transfer_with_component_normalization import (

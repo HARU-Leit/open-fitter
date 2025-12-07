@@ -8,7 +8,7 @@ import time
 from collections import deque
 
 import bmesh
-from blender_utils.get_vertex_weight_safe import get_vertex_weight_safe
+from math_utils.weight_utils import get_vertex_weight_safe
 from blender_utils.merge_weights_to_parent import merge_weights_to_parent
 
 
