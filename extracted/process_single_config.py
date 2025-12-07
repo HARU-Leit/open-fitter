@@ -11,7 +11,9 @@ from stages.mesh_deformation import MeshDeformationStage
 from stages.pose_application import PoseApplicationStage
 from stages.scene_finalization import SceneFinalizationStage
 from stages.template_adjustment import TemplateAdjustmentStage
-from stages.weight_transfer import WeightTransferStage
+from stages.weight_transfer_execution import WeightTransferExecutionStage
+from stages.weight_transfer_postprocess import WeightTransferPostProcessStage
+from stages.weight_transfer_preparation import WeightTransferPreparationStage
 
 
 class OutfitRetargetPipeline:
@@ -27,8 +29,10 @@ class OutfitRetargetPipeline:
         4. BlendShapeApplication: BlendShape変形フィールド適用
         5. PoseApplication: ポーズ適用・頂点属性設定
         6. MeshDeformation: メッシュ変形処理（サイクル1）
-        7. WeightTransfer: ウェイト転送・サイクル2
-        8. SceneFinalization: 仕上げ・FBXエクスポート
+        7. WeightTransferPreparation: ウェイト転送準備
+        8. WeightTransferExecution: ウェイト転送本体
+        9. WeightTransferPostProcess: ウェイト転送後処理
+        10. SceneFinalization: 仕上げ・FBXエクスポート
     """
     
     # ProcessingContextに委譲する属性のリスト
@@ -41,6 +45,7 @@ class OutfitRetargetPipeline:
         'is_A_pose', 'blend_shape_labels',
         'base_weights_time', 'blendshape_time', 'pose_time',
         'cycle1_end_time', 'cycle2_post_end',
+        'containing_objects', 'armature_settings_dict',
         'time_module', 'start_time'
     })
 
@@ -91,8 +96,12 @@ class OutfitRetargetPipeline:
             PoseApplicationStage(self).run()
             # サイクル1: メッシュ変形処理
             MeshDeformationStage(self).run()
-            # サイクル2: ウェイト転送と後処理
-            WeightTransferStage(self).run()
+            # サイクル2: ウェイト転送準備
+            WeightTransferPreparationStage(self).run()
+            # サイクル2: ウェイト転送本体
+            WeightTransferExecutionStage(self).run()
+            # サイクル2: ウェイト転送後処理
+            WeightTransferPostProcessStage(self).run()
             # 最終仕上げとFBXエクスポート
             SceneFinalizationStage(self).run()
 
