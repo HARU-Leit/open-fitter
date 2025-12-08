@@ -58,15 +58,12 @@ def process_basis_loop(ctx):
 
         intersections = find_intersecting_faces_bvh(ctx.target_obj)
         if not ctx.subdivision:
-            print("Subdivision skipped")
             break
 
         if not intersections:
-            print("No intersections detected")
             break
 
         if iteration == MAX_ITERATIONS:
-            print("Maximum iterations reached")
             break
 
         iteration += 1

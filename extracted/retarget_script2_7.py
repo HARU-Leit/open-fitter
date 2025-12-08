@@ -57,13 +57,11 @@ def main():
         print(f"Progress: 0.02")
         args, config_pairs = parse_args()
         # V1パイプラインを実行
-        print("Using Pipeline V1 (is_final_pair最適化版)")
         success = main_v1(args, config_pairs, start_time)
         
         total_time = time.time() - start_time
         print(f"Progress: 1.00")
         print(f"\n{'='*60}")
-        print(f"全体処理完了")
         print(f"{'='*60}")
         
         return success

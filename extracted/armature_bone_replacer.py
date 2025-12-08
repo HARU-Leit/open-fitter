@@ -65,7 +65,6 @@ def store_base_bone_parents(
                 bone.parent.name if bone.parent and bone.parent.name in base_bones else None
             )
 
-    print(base_bone_parents)
     return base_bone_parents
 
 

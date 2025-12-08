@@ -43,4 +43,3 @@ def smooth_and_cleanup(context):
             except RuntimeError:
                 continue
     cleanup_weights_time = time.time() - cleanup_weights_time_start
-    print(f"  微小ウェイト除外: {cleanup_weights_time:.2f}秒")

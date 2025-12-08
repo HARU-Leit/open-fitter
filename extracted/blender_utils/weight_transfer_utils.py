@@ -452,4 +452,3 @@ def create_overlapping_vertices_attributes(clothing_meshes, base_avatar_data, di
         
         mesh_obj.data.update()
         
-        print(f"Created custom attributes '{overlap_attr_name}' and '{world_pos_attr_name}' for {mesh_obj.name} with {cluster_id} overlapping vertex clusters")

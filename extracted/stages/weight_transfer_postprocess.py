@@ -47,7 +47,6 @@ class WeightTransferPostProcessStage:
 
         print("Status: サイクル2後処理中")
         for obj in p.clothing_meshes:
-            print("cycle2 (post-weight transfer) " + obj.name)
 
             # アーマチュアモディファイアの可視性を復元
             set_armature_modifier_visibility(obj, True, True)

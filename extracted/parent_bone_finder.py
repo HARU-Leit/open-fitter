@@ -224,11 +224,8 @@ def _fallback_parent_selection(
                 )
                 return sub_parent_humanoid
             else:
-                print(f"chosen_parent: {parent_humanoid} (fallback, distance: {parent_distance:.4f})")
                 return parent_humanoid
         else:
-            print(f"chosen_parent: {parent_humanoid} (fallback)")
             return parent_humanoid
     else:
-        print(f"chosen_parent: {parent_humanoid} (fallback)")
         return parent_humanoid

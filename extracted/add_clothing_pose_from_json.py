@@ -99,7 +99,6 @@ def add_clothing_pose_from_json(armature_obj, pose_filepath="pose_data.json", in
 
     # ポーズを適用する前に現在のポーズを記録
     store_pose_globally(armature_obj)
-    print(f"Pose state stored globally before applying pose from {pose_filepath}")
 
     # 初期ポーズの適用（新しい独立した関数を使用）
     if init_pose_filepath:
@@ -131,7 +130,6 @@ def add_clothing_pose_from_json(armature_obj, pose_filepath="pose_data.json", in
             if not parent_with_pose:
                 continue
             source_humanoid_bone = parent_with_pose
-            print(f"Using pose data from parent bone {source_humanoid_bone} for {humanoid_bone}")
         
         # ポーズデータを適用
         bone = armature_obj.pose.bones[bone_name]
@@ -156,11 +154,9 @@ def add_clothing_pose_from_json(armature_obj, pose_filepath="pose_data.json", in
     
     # ポーズの更新を強制
     bpy.context.view_layer.update()
-    print(f"Pose data added to armature '{armature_obj.name}' from {pose_filepath}")
     
     for bone_name in armature_obj.pose.bones.keys():
         if bone_name in bone_to_humanoid:
             humanoid_name = bone_to_humanoid[bone_name]
             if humanoid_name in processed_bones:
                 mat = armature_obj.pose.bones[bone_name].matrix
-                print(f"'{humanoid_name}' ({bone_name}) bone.matrix_final {mat}")

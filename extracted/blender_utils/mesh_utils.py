@@ -174,7 +174,6 @@ def apply_all_transforms():
             
             # ボーンペアレントを設定
             bpy.ops.object.parent_set(type='BONE', keep_transform=True)
-            print(f"Restored bone parent '{parent_bone}' for object '{obj.name}'")
         else:
             # オブジェクト親だった場合
             obj.select_set(True)
@@ -337,7 +336,6 @@ def rename_base_objects(mesh_obj: bpy.types.Object, armature_obj: bpy.types.Obje
     armature_obj.name = "Armature.BaseAvatar"
     armature_obj.data.name = "Armature.BaseAvatar_Data"
     
-    print(f"Renamed base objects: {original_mesh_name} -> {mesh_obj.name}, {original_armature_name} -> {armature_obj.name}")
     return mesh_obj, armature_obj
 
 # Merged from cleanup_base_objects.py

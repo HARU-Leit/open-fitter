@@ -85,7 +85,6 @@ def apply_blendshape_deformation_fields(target_obj, field_data_path, blend_shape
                     mask_weights = create_blendshape_mask(target_obj, label_to_mask_bones[label], clothing_avatar_data, field_name=label, store_debug_mask=True)
                     # mask_weightsがすべて0である場合は処理をスキップ
                     if mask_weights is not None and np.all(mask_weights == 0):
-                        print(f"Skipping {label} - all mask weights are zero")
                         continue
                         
                 # 新しいカスタムレンジ処理を使用
@@ -149,7 +148,6 @@ def apply_blendshape_deformation_fields(target_obj, field_data_path, blend_shape
                             mask_weights = create_blendshape_mask(target_obj, label_to_mask_bones_normal[label], clothing_avatar_data, field_name=label, store_debug_mask=True)
                             # mask_weightsがすべて0である場合は処理をスキップ
                             if mask_weights is not None and np.all(mask_weights == 0):
-                                print(f"Skipping {label} - all mask weights are zero")
                                 continue
                                 
                         # 新しいカスタムレンジ処理を使用
@@ -180,7 +178,6 @@ def apply_blendshape_deformation_fields(target_obj, field_data_path, blend_shape
                             inv_shape_key.data[i].co = local_pos - base_displacement
                             matrix_armature_inv_fallback = matrix_armature_inv
 
-                print(f"Created inverse shape key: {label}_temp")
             else:
                 print(f"Warning: Field file not found for blend shape {label}")
         else:

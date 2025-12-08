@@ -66,7 +66,6 @@ def process_mesh_with_connected_components_inline(obj, field_data_path, blend_sh
         return
     
     # 進捗を報告
-    print(f"Processing {original_name}: {len(separated_objects)} separated, {len(non_separated_objects)} non-separated")
 
     bpy.context.view_layer.objects.active = obj
     
@@ -88,11 +87,9 @@ def process_mesh_with_connected_components_inline(obj, field_data_path, blend_sh
         # OBBを計算
         obb = calculate_obb_from_object(sep_obj)
 
-        print(f"Component {sep_obj.name} OBB: \n {obb}")
         
         # 素体メッシュとOBBの交差をチェック（base_objが存在する場合のみ）
         if base_obj and check_mesh_obb_intersection(base_obj, obb):
-            print(f"Component {sep_obj.name} intersects with base mesh, will not be separated")
             do_not_separate.append(sep_obj.name)
         
         processed_objects.append(sep_obj)

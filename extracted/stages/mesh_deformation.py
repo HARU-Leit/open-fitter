@@ -75,7 +75,6 @@ class MeshDeformationStage:
 
     def _process_single_mesh(self, obj, p, time):
         """単一メッシュの変形処理"""
-        print("cycle1 " + obj.name)
 
         # ウェイト初期化
         reset_shape_keys(obj)
@@ -165,9 +164,7 @@ class MeshDeformationStage:
             if generated_key and base_key:
                 for i, point in enumerate(generated_key.data):
                     base_key.data[i].co = point.co
-                print(f"Merged {generated_name} into {base_name} for {obj.name}")
                 obj.shape_key_remove(generated_key)
-                print(f"Removed generated shape key: {generated_name} from {obj.name}")
 
     def _print_shape_key_summary(self, p):
         """シェイプキーのサマリーを出力"""

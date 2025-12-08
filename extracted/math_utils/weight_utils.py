@@ -92,7 +92,6 @@ def normalize_vertex_weights(obj):
         group_select_mode='BONE_DEFORM',
         lock_active=False
     )
-    print(f"Normalized weights for {obj.name}")
 
 # Merged from normalize_bone_weights.py
 
@@ -174,7 +173,6 @@ def calculate_distance_based_weights(source_obj_name, target_obj_name, vertex_gr
         vertex_group = source_obj.vertex_groups[vertex_group_name]
     
     # ターゲットオブジェクトのBVHTreeを作成
-    print("BVHTreeを構築中...")
     
     # ターゲットメッシュのワールド座標での頂点とポリゴンを取得
     target_verts = []
@@ -467,7 +465,6 @@ def normalize_overlapping_vertices_weights(clothing_meshes, base_avatar_data, ov
         overlap_attr_name: 重なり検出フラグの属性名
         world_pos_attr_name: ワールド座標が保存された属性名
     """
-    print("Normalizing weights for overlapping vertices using custom attributes...")
 
     ctx = _OverlapNormalizationContext(
         clothing_meshes,

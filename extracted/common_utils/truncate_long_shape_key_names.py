@@ -57,4 +57,3 @@ def truncate_long_shape_key_names(clothing_meshes, clothing_avatar_data):
         for shape_key, truncated_name in keys_to_rename:
             old_name = shape_key.name
             shape_key.name = truncated_name
-            print(f"Truncated shape key name: {old_name} -> {truncated_name} on mesh {obj.name}")

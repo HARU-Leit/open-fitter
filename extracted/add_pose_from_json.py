@@ -121,7 +121,6 @@ def add_pose_from_json(armature_obj, filepath, avatar_data, invert=False):
             if not parent_with_pose:
                 continue
             source_humanoid_bone = parent_with_pose
-            print(f"Using pose data from parent bone {source_humanoid_bone} for {humanoid_bone}")
         
         # 保存されたオリジナルデータを使用して計算
         if humanoid_bone not in original_bone_data:
@@ -154,4 +153,3 @@ def add_pose_from_json(armature_obj, filepath, avatar_data, invert=False):
     
     # 最終的なポーズの更新を強制
     bpy.context.view_layer.update()
-    print(f"Pose data added to armature '{armature_obj.name}' from {filepath}")

@@ -85,12 +85,10 @@ def attempt_weight_transfer(context, source_obj, vertex_group, max_distance_try=
             bpy.context.object.robust_weight_transfer_settings.vertex_group_invert = False
             bpy.context.scene.robust_weight_transfer_settings.group_selection = "DEFORM_POSE_BONES"
             bpy.ops.object.skin_weight_transfer()
-            print(f"Weight transfered with max_distance {max_distance_try}")
             return True, max_distance_try
         except RuntimeError as exc:
             restore_weights(context.target_obj, prev_weights)
             max_distance_try += 0.05
             if max_distance_try > 1.0:
-                print("Max distance exceeded 1.0, stopping weight transfer attempts")
                 return False, initial_max_distance
     return False, initial_max_distance

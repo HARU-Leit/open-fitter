@@ -69,7 +69,6 @@ class PoseFinalizationStage:
                 remove_propagated_weights(obj, p.propagated_groups_map[obj.name])
         # 元のボーンデータ復元
         if p.original_humanoid_bones is not None or p.original_auxiliary_bones is not None:
-            print("元のhumanoidBonesとauxiliaryBonesを復元中...")
             if p.original_humanoid_bones is not None:
                 p.base_avatar_data['humanoidBones'] = p.original_humanoid_bones
             if p.original_auxiliary_bones is not None:

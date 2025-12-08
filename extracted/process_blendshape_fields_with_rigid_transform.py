@@ -63,7 +63,6 @@ def process_blendshape_fields_with_rigid_transform(obj, field_data_path, base_av
             
             # configファイルのblendShapeFieldsのlabelと一致する場合はスキップ
             if label in config_blend_shape_labels:
-                print(f"Skipping base avatar blend shape field '{label}' (already processed from config)")
                 continue
                 
             field_path = os.path.join(os.path.dirname(field_data_path), blend_field["filePath"])
@@ -146,8 +145,6 @@ def process_blendshape_fields_with_rigid_transform(obj, field_data_path, base_av
                         deformed_local_pos = obj.matrix_world.inverted() @ deformed_world_pos
                         shape_key_b.data[i].co = deformed_local_pos
                         matrix_armature_inv_fallback = matrix_armature_inv
-                else:
-                    print(f"Skipping creation of shape key '{label}' as it has no displacement")
 
             else:
                 print(f"Warning: Field file not found for blend shape {label}")

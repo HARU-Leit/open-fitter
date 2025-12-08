@@ -420,7 +420,6 @@ def save_vertex_weights(mesh_obj: bpy.types.Object) -> dict:
         # weights_dataにも頂点IDを記録
         weights_data['vertex_ids'][vert.index] = vert.index
     
-    print(f"Saved vertex weights for {len(mesh.vertices)} vertices with original IDs in {mesh_obj.name}")
     
     return weights_data
 
@@ -445,7 +444,6 @@ def restore_vertex_weights(mesh_obj: bpy.types.Object, weights_data: dict) -> No
     for group_name in groups_to_remove:
         if group_name in mesh_obj.vertex_groups:
             mesh_obj.vertex_groups.remove(mesh_obj.vertex_groups[group_name])
-            print(f"Removed vertex group {group_name} from {mesh_obj.name}")
     
     # 元々存在していたグループが削除されている場合は再作成
     for group_name in original_groups:

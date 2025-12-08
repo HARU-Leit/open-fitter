@@ -34,7 +34,6 @@ def process_config_blendshapes(ctx):
     if not (ctx.config_data and "blendShapeFields" in ctx.config_data):
         return
 
-    print("Processing config blendShapeFields...")
 
     for blend_field in ctx.config_data["blendShapeFields"]:
         label = blend_field["label"]
@@ -48,7 +47,6 @@ def process_config_blendshapes(ctx):
         if (
             ctx.blend_shape_labels is None or source_label not in ctx.blend_shape_labels
         ) and source_label not in ctx.target_obj.data.shape_keys.key_blocks:
-            print(f"Skipping {label} - source label {source_label} not in shape keys")
             continue
 
         mask_bones = blend_field.get("maskBones", [])
@@ -63,7 +61,6 @@ def process_config_blendshapes(ctx):
             )
 
         if mask_weights is not None and np.all(mask_weights == 0):
-            print(f"Skipping {label} - all mask weights are zero")
             continue
 
         original_shape_key_state = save_shape_key_state(ctx.target_obj)
@@ -79,7 +76,6 @@ def process_config_blendshapes(ctx):
                         source_label
                     )
                     source_shape_key.value = 1.0
-                    print(f"source_label: {source_label} is found in shape keys")
                 else:
                     temp_shape_key_name = f"{source_label}_temp"
                     if temp_shape_key_name in ctx.target_obj.data.shape_keys.key_blocks:
@@ -175,7 +171,6 @@ def process_skipped_transitions(ctx):
         return
 
     transition_sets = ctx.config_data.get("blend_shape_transition_sets", [])
-    print("Processing skipped config blendShapeFields...")
 
     for transition_set in transition_sets:
         label = transition_set["label"]
@@ -201,7 +196,6 @@ def process_skipped_transitions(ctx):
             )
 
         if mask_weights is not None and np.all(mask_weights == 0):
-            print(f"Skipping {label} - all mask weights are zero")
             continue
 
         target_shape_key_name = ctx.label_to_target_shape_key_name[source_label]
@@ -314,7 +308,6 @@ def process_clothing_blendshapes(ctx):
                     )
                     source_shape_key.value = 1.0
                     basis_field_path2 = source_field_path
-                    print(f"source_label: {source_shape_name} is found in shape keys")
                 else:
                     temp_shape_key_name = f"{source_shape_name}_temp"
                     if temp_shape_key_name in ctx.target_obj.data.shape_keys.key_blocks:

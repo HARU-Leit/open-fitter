@@ -76,7 +76,7 @@ class _ClothingAvatarContext:
                 if has_armature and len(obj.data.vertices) > 0:
                     meshes.append(obj)
                 elif has_armature and len(obj.data.vertices) == 0:
-                    print(f"Skipping mesh '{obj.name}': vertex count is 0")
+                    pass  # Auto-inserted
         self.clothing_meshes = meshes
 
     def filter_target_meshes(self):
@@ -107,7 +107,6 @@ class _ClothingAvatarContext:
         self.clothing_armature.data.bones.active = self.clothing_armature.data.bones[parent_name]
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.parent_set(type='BONE', keep_transform=True)
-        print(f"Set parent bone '{parent_name}' for mesh '{mesh_obj.name}' (world transform preserved)")
         bpy.ops.object.select_all(action='DESELECT')
 
     def process_mesh_renderers(self):
@@ -124,9 +123,7 @@ class _ClothingAvatarContext:
 
             if has_armature or current_parent_name == parent_name:
                 if has_armature:
-                    print(f"Skipping mesh '{mesh_name}': already has Armature modifier")
-                else:
-                    print(f"Skipping mesh '{mesh_name}': parent already matches ('{current_parent_name}')")
+                    pass  # Auto-inserted
                 continue
 
             bone_found = parent_name in self.clothing_armature.data.bones

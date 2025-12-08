@@ -38,7 +38,6 @@ def apply_distance_normal_based_smoothing(body_obj, cloth_obj, distance_min=0.0,
     start_time = time.time()
     
     if not body_obj or not cloth_obj:
-        print("指定されたオブジェクトが見つかりません")
         return
     
     # 現在のモードを保存
@@ -263,7 +262,6 @@ def apply_distance_normal_based_smoothing(body_obj, cloth_obj, distance_min=0.0,
     bpy.ops.object.mode_set(mode='OBJECT')
     
     # Maxフィルターを適用
-    print("  Maxフィルター適用中...")
     apply_max_filter_to_vertex_group(cloth_obj, new_group_name, filter_radius=0.02)
     
     # === 新しく作成された頂点グループに対するスムージング処理 ===
@@ -331,7 +329,6 @@ def apply_distance_normal_based_smoothing(body_obj, cloth_obj, distance_min=0.0,
             
             # 2. スムージング処理（original_weightsがすべて0でない場合のみ）
             if np.any(original_weights > 0):
-                print(f"    スムージング処理実行中...")
                 neighbors_cache_result = apply_smoothing_to_vertex_group(cloth_obj, target_group_name, smoothing_radius, iteration=3, use_distance_weighting=True, gaussian_falloff=True, neighbors_cache=neighbors_cache_result)
                 
                 # 3. スムージング後のウェイトを取得
@@ -343,7 +340,6 @@ def apply_distance_normal_based_smoothing(body_obj, cloth_obj, distance_min=0.0,
                             break
                 
                 # 4. 合成処理
-                print(f"    合成処理...")
                 for i in range(len(cloth_obj.data.vertices)):
                     # 生成された頂点グループのウェイトを合成の重みとして使用
                     blend_factor = mask_weights[i]
@@ -353,8 +349,6 @@ def apply_distance_normal_based_smoothing(body_obj, cloth_obj, distance_min=0.0,
                     
                     # 最終ウェイトを設定
                     target_group.add([i], final_weight, 'REPLACE')
-            else:
-                print(f"    スキップ: original_weightsがすべて0のため処理をスキップします")
             
     # 元のモードに戻す
     bpy.ops.object.mode_set(mode=current_mode)

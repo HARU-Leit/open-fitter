@@ -69,7 +69,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
     
     # 1. configファイルのblendShapeFieldsを先に処理
     if config_data and "blendShapeFields" in config_data:
-        print("Processing config blendShapeFields (rigid transform)...")
         
         for blend_field in config_data["blendShapeFields"]:
             label = blend_field["label"]
@@ -79,7 +78,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
             source_blend_shape_settings = blend_field.get("sourceBlendShapeSettings", [])
 
             if (blend_shape_labels is None or source_label not in blend_shape_labels) and source_label not in obj.data.shape_keys.key_blocks:
-                print(f"Skipping {label} - source label {source_label} not in shape keys")
                 skipped_shape_keys.add(label)
                 continue
             
@@ -90,7 +88,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
                 mask_weights = create_blendshape_mask(obj, mask_bones, clothing_avatar_data, field_name=label, store_debug_mask=True)
             
             if mask_weights is not None and np.all(mask_weights == 0):
-                print(f"Skipping {label} - all mask weights are zero")
                 continue
             
             # 対象メッシュオブジェクトの元のシェイプキー設定を保存
@@ -107,12 +104,10 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
                     if source_label in obj.data.shape_keys.key_blocks:
                         source_shape_key = obj.data.shape_keys.key_blocks.get(source_label)
                         source_shape_key.value = 1.0
-                        print(f"source_label: {source_label} is found in shape keys")
                     else:
                         temp_shape_key_name = f"{source_label}_temp"
                         if temp_shape_key_name in obj.data.shape_keys.key_blocks:
                             obj.data.shape_keys.key_blocks[temp_shape_key_name].value = 1.0
-                            print(f"temp_shape_key_name: {temp_shape_key_name} is found in shape keys")
             else:
                 # source_blend_shape_settingsを適用
                 for source_blend_shape_setting in source_blend_shape_settings:
@@ -121,12 +116,10 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
                     if source_blend_shape_name in obj.data.shape_keys.key_blocks:
                         source_blend_shape_key = obj.data.shape_keys.key_blocks.get(source_blend_shape_name)
                         source_blend_shape_key.value = source_blend_shape_value
-                        print(f"source_blend_shape_name: {source_blend_shape_name} is found in shape keys")
                     else:
                         temp_blend_shape_key_name = f"{source_blend_shape_name}_temp"
                         if temp_blend_shape_key_name in obj.data.shape_keys.key_blocks:
                             obj.data.shape_keys.key_blocks[temp_blend_shape_key_name].value = source_blend_shape_value
-                            print(f"temp_blend_shape_key_name: {temp_blend_shape_key_name} is found in shape keys")
             
             # blend_shape_key_nameを設定（同名のシェイプキーがある場合は_generatedを付ける）
             blend_shape_key_name = label
@@ -134,7 +127,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
                 blend_shape_key_name = f"{label}_generated"
 
             if os.path.exists(field_path):
-                print(f"Processing config blend shape field with rigid transform: {label} -> {blend_shape_key_name}")
                 generated_shape_key = apply_field_delta_with_rigid_transform_single(obj, field_path, blend_shape_labels, clothing_avatar_data, blend_shape_key_name)
                 
                 # 該当するラベルの遷移を遅延実行リストに追加
@@ -164,7 +156,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
     
     # transition_setsに含まれるがconfig_blend_shape_labelsに含まれないシェイプキーに対して処理
     if config_data and config_data.get('blend_shape_transition_sets', []):
-        print("Processing skipped config blendShapeFields...")
         
         transition_sets = config_data.get('blend_shape_transition_sets', [])
         for transition_set in transition_sets:
@@ -174,7 +165,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
 
             source_label = get_source_label(label, config_data)
             if source_label not in label_to_target_shape_key_name:
-                print(f"Skipping {label} - source label {source_label} not in label_to_target_shape_key_name")
                 continue
 
             # マスクウェイトを取得
@@ -184,14 +174,12 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
                 mask_weights = create_blendshape_mask(obj, mask_bones, clothing_avatar_data, field_name=label, store_debug_mask=True)
             
             if mask_weights is not None and np.all(mask_weights == 0):
-                print(f"Skipping {label} - all mask weights are zero")
                 continue
             
             target_shape_key_name = label_to_target_shape_key_name[source_label]
             target_shape_key = obj.data.shape_keys.key_blocks.get(target_shape_key_name)
 
             if not target_shape_key:
-                print(f"Skipping {label} - target shape key {target_shape_key_name} not found")
                 continue
 
             # target_shape_key_nameで指定されるシェイプキーのコピーを作成
@@ -215,7 +203,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
                     'save_original_shape_key': False
                 })
 
-                print(f"Added deferred transition: {label} -> {skipped_blend_shape_key.name}")
 
                 config_generated_shape_keys[skipped_blend_shape_key.name] = mask_weights
                 non_relative_shape_keys.add(skipped_blend_shape_key.name)
@@ -284,9 +271,8 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='SELECT')
 
-        print(f"Shape keys in {obj.name}:")
         for key_block in obj.data.shape_keys.key_blocks:
-            print(f"- {key_block.name} (value: {key_block.value})")
+            pass  # Auto-inserted
         
         original_shape_key_name = f"{shape_key_name}_original"
         for sk in obj.data.shape_keys.key_blocks:
@@ -305,7 +291,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
         if original_shape_key_name in obj.data.shape_keys.key_blocks:
             original_shape_key = obj.data.shape_keys.key_blocks.get(original_shape_key_name)
             obj.shape_key_remove(original_shape_key)
-            print(f"Removed shape key: {original_shape_key_name} from {obj.name}")
         
         # 不要なシェイプキーを削除
         if shape_key:
@@ -349,7 +334,6 @@ def apply_field_delta_with_rigid_transform(obj, field_data_path, blend_shape_lab
             unused_shape_key = obj.data.shape_keys.key_blocks.get(unused_shape_key_name)
             if unused_shape_key:
                 obj.shape_key_remove(unused_shape_key)
-                print(f"Removed shape key: {unused_shape_key_name} from {obj.name}")
             else:
                 print(f"Warning: {unused_shape_key_name} is not found in shape keys")
         else:

@@ -96,7 +96,6 @@ def create_hinge_bone_group(obj: bpy.types.Object, armature: bpy.types.Object, a
                         if g.group == group_index:
                             weight = g.weight
                             hinge_bone_group.add([index], weight, 'REPLACE')
-                            print(f"Added weight to {index}")
                             break
 
 # Merged from get_humanoid_and_auxiliary_bone_groups_with_intermediate.py

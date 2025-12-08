@@ -9,7 +9,6 @@ from blender_utils.bone_utils import get_humanoid_bone_hierarchy
 
 def set_humanoid_bone_inherit_scale(armature_obj: bpy.types.Object, avatar_data: dict) -> None:
     
-    print("set_humanoid_bone_inherit_scale")
     
     # Humanoidボーンの情報を取得
     bone_parents, humanoid_to_bone, bone_to_humanoid = get_humanoid_bone_hierarchy(avatar_data)

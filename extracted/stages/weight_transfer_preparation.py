@@ -110,7 +110,6 @@ class WeightTransferPreparationStage:
         ):
             return
 
-        print("subHumanoidBonesとsubAuxiliaryBonesを適用中...")
 
         # 元のボーンデータを保存
         if p.base_avatar_data.get('humanoidBones'):
@@ -153,7 +152,6 @@ class WeightTransferPreparationStage:
                     else:
                         auxiliary_bones.append(sub_aux.copy())
 
-        print("subHumanoidBonesとsubAuxiliaryBonesの適用完了")
 
     def _apply_template_vertex_groups(self, p):
         """Template固有の頂点グループ処理"""
@@ -201,7 +199,6 @@ class WeightTransferPreparationStage:
 
     def _preprocess_mesh(self, obj, p, time, is_final_pair):
         """単一メッシュの前処理"""
-        print("cycle2 (pre-weight transfer) " + obj.name)
 
         # アーマチュア設定を保存
         armature_settings = store_armature_modifier_settings(obj)

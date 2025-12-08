@@ -169,12 +169,10 @@ def _apply_rigid(ctx: _WeightPatternContext, component):
 
 
 def _debug_dump_patterns(obj_name, components, component_patterns):
-    print(f"Found {len(components)} connected components in {obj_name}")
-    print(f"Found {len(component_patterns)} uniform weight patterns in {obj_name}")
     for i, (pattern, components_list) in enumerate(component_patterns.items()):
         total_vertices = sum(len(comp) for comp in components_list)
         for j, comp in enumerate(components_list):
-            print(f"    Component {j}: {len(comp)} vertices")
+            pass  # Auto-inserted
 
 
 def group_components_by_weight_pattern(obj, base_avatar_data, clothing_armature):
@@ -378,7 +376,6 @@ class _ComponentSeparationContext:
         components = find_connected_components(self.mesh_obj)
         if len(components) <= 1:
             return components
-        print(f"Found {len(components)} connected components in {self.mesh_obj.name}")
         return components
 
     def analyze_components(self, components: List[List[int]]) -> List[ComponentInfo]:
@@ -403,7 +400,6 @@ class _ComponentSeparationContext:
                     weight_hash = generate_weight_hash(weights)
 
                     if max_extent < 0.0003:
-                        print(f"Component {i} in {self.mesh_obj.name} is too small (max extent: {max_extent:.4f}), skipping")
                         component_infos.append(ComponentInfo(component, False, {}, "", max_extent))
                         continue
 
@@ -423,15 +419,12 @@ class _ComponentSeparationContext:
                                 break
 
                     if should_separate:
-                        print(f"Component {i} in {self.mesh_obj.name} has uniform weights: {weight_hash} (max extent: {max_extent:.4f})")
                         component_infos.append(ComponentInfo(component, True, weights, weight_hash, max_extent, vertices_world))
                     else:
                         component_infos.append(ComponentInfo(component, False, {}, "", max_extent))
                 else:
-                    print(f"Component {i} in {self.mesh_obj.name} OBB calculation failed")
                     component_infos.append(ComponentInfo(component, False, {}, "", 0.0))
             else:
-                print(f"Component {i} in {self.mesh_obj.name} does not have uniform weights")
                 component_infos.append(ComponentInfo(component, False, {}, "", 0.0))
 
         return component_infos
@@ -497,7 +490,6 @@ class _ComponentSeparationContext:
                 component_indices[i] = component
 
         clusters = cluster_components_by_adaptive_distance(component_coords, component_sizes)
-        print(f"Weight hash {weight_hash} has {len(clusters)} spatial clusters")
         return clusters, component_indices
 
     def separate_uniform_components(self, weight_groups, component_infos: List[ComponentInfo]) -> List[bpy.types.Object]:
@@ -557,8 +549,6 @@ class _ComponentSeparationContext:
     def report(self, uniform_objects: List[bpy.types.Object], non_uniform_obj: Optional[bpy.types.Object]):
         if non_uniform_obj:
             pass
-        else:
-            print("No non-separated object.")
 
         for sep_obj in uniform_objects:
             pass

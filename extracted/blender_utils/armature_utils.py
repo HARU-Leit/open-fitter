@@ -108,7 +108,6 @@ def adjust_armature_hips_position(armature_obj: bpy.types.Object, target_positio
     offset = target_position - current_position
     # 位置の差が十分小さい場合は処理をスキップ
     if offset.length < 0.0001:  # 0.1mm未満の差は無視
-        print("Hips position is already at target position, skipping adjustment")
         return
 
     # 現在のアクティブオブジェクトとモードを保存
@@ -220,7 +219,6 @@ def normalize_clothing_bone_names(clothing_armature: bpy.types.Object, clothing_
         
         # Check if bone exists in armature
         if original_bone_name in armature_bone_names:
-            print(f"Bone '{original_bone_name}' found in armature")
             continue
             
         # Extract alphabetic characters and convert to lowercase
@@ -229,7 +227,6 @@ def normalize_clothing_bone_names(clothing_armature: bpy.types.Object, clothing_
             print(f"Warning: No alphabetic characters found in bone name '{original_bone_name}'")
             continue
             
-        print(f"Looking for bone matching pattern '{normalized_pattern}' (from '{original_bone_name}')")
         
         # Find matching bone in armature
         matching_bone = None
@@ -240,7 +237,6 @@ def normalize_clothing_bone_names(clothing_armature: bpy.types.Object, clothing_
                 break
                 
         if matching_bone:
-            print(f"Found matching bone: '{original_bone_name}' -> '{matching_bone}'")
             bone_name_changes[matching_bone] = original_bone_name
         else:
             print(f"Warning: No matching bone found for '{original_bone_name}' (pattern: '{normalized_pattern}')")
@@ -255,13 +251,10 @@ def normalize_clothing_bone_names(clothing_armature: bpy.types.Object, clothing_
                 if old_name in mesh_obj.vertex_groups:
                     vertex_group = mesh_obj.vertex_groups[old_name]
                     vertex_group.name = new_name
-                    print(f"Updated vertex group '{old_name}' -> '{new_name}' in mesh '{mesh_obj.name}'")
         
         # Update bone names in clothing armature
         for old_name, new_name in bone_name_changes.items():
             if old_name in clothing_armature.data.bones:
                 bone = clothing_armature.data.bones[old_name]
                 bone.name = new_name
-                print(f"Updated armature bone '{old_name}' -> '{new_name}'")
     
-    print("Bone name normalization completed")

@@ -180,7 +180,6 @@ def find_best_matching_target_settings(source_label: str,
                 
                 # 共通要素がない場合はスキップ
                 if not mask_bones_set.intersection(target_mask_bones_set):
-                    print(f"label: {label} - skip: no common mask_bones")
                     continue
         
         difference = calculate_blendshape_settings_difference(
@@ -317,7 +316,6 @@ def find_material_index_from_faces(mesh_obj, faces_data):
     most_common_index = most_common_material[0]
     most_common_count = most_common_material[1]
     
-    print(f"Most common material index: {most_common_index} (appears {most_common_count} times)")
     
     return most_common_index
 

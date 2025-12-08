@@ -44,7 +44,6 @@ def apply_blendshape_operation(target_obj, operation, target_shape_key, rigid_tr
         
         # ステップ間の変換を計算
         if from_step == to_step:
-            print("No step change required")
             return
         
         # 現在のオブジェクトの頂点位置を取得
@@ -126,7 +125,6 @@ def apply_blendshape_operation(target_obj, operation, target_shape_key, rigid_tr
 def apply_blendshape_operation_with_shape_key_name(target_obj, operation, target_shape_key_name, rigid_transformation=False):
     target_shape_key = target_obj.data.shape_keys.key_blocks.get(target_shape_key_name)
     if target_shape_key is None:
-        print(f"Shape key {target_shape_key_name} not found")
         return
     
     original_shape_key_state = save_shape_key_state(target_obj)

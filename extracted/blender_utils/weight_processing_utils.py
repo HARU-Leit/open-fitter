@@ -47,7 +47,6 @@ def merge_weights_to_parent(mesh_obj: bpy.types.Object, source_bone: str, target
     
     # Remove source group
     mesh_obj.vertex_groups.remove(source_group)
-    print(f"Merged weights from {source_bone} to {target_bone} in {mesh_obj.name}")
 
 # Merged from remove_propagated_weights.py
 
@@ -143,7 +142,6 @@ def merge_auxiliary_to_humanoid_weights(mesh_obj: bpy.types.Object, avatar_data:
 
             # Remove auxiliary bone vertex group
             mesh_obj.vertex_groups.remove(aux_group)
-            print(f"Merged weights from {aux_bone} to {humanoid_bone} in {mesh_obj.name}")
 
 # Merged from propagate_weights_to_side_vertices.py
 
@@ -201,7 +199,6 @@ def propagate_weights_to_side_vertices(
         bm.free()
         return
 
-    print(f"Found {len(vertices_to_process)} vertices without bone weights but with side weights")
 
     iteration = 0
     while vertices_to_process and iteration < max_iterations:
@@ -230,7 +227,6 @@ def propagate_weights_to_side_vertices(
         if not propagated_this_iteration:
             break
 
-        print(f"Iteration {iteration + 1}: Propagated weights to {len(propagated_this_iteration)} vertices")
         vertices_to_process -= propagated_this_iteration
         iteration += 1
 
@@ -269,7 +265,6 @@ def process_bone_weight_consolidation(mesh_obj: bpy.types.Object, avatar_data: d
         if chest_bone not in mesh_obj.vertex_groups:
             mesh_obj.vertex_groups.new(name=chest_bone)
         merge_vertex_group_weights(mesh_obj, upper_chest_bone, chest_bone)
-        print(f"Merged {upper_chest_bone} weights to {chest_bone} in {mesh_obj.name}")
     
     # 胸ボーン -> Chest への統合
     breasts_humanoid_bones = [
@@ -286,7 +281,6 @@ def process_bone_weight_consolidation(mesh_obj: bpy.types.Object, avatar_data: d
             breasts_bone = get_bone_name_from_humanoid(avatar_data, breasts_humanoid)
             if breasts_bone and breasts_bone in mesh_obj.vertex_groups:
                 merge_vertex_group_weights(mesh_obj, breasts_bone, chest_bone)
-                print(f"Merged {breasts_bone} weights to {chest_bone} in {mesh_obj.name}")
     
     # Left足指系ボーン -> LeftFoot への統合
     left_foot_bone = get_bone_name_from_humanoid(avatar_data, "LeftFoot")
@@ -318,7 +312,6 @@ def process_bone_weight_consolidation(mesh_obj: bpy.types.Object, avatar_data: d
             toe_bone = get_bone_name_from_humanoid(avatar_data, toe_humanoid)
             if toe_bone and toe_bone in mesh_obj.vertex_groups:
                 merge_vertex_group_weights(mesh_obj, toe_bone, left_foot_bone)
-                print(f"Merged {toe_bone} weights to {left_foot_bone} in {mesh_obj.name}")
     
     # Right足指系ボーン -> RightFoot への統合
     right_foot_bone = get_bone_name_from_humanoid(avatar_data, "RightFoot")
@@ -350,7 +343,6 @@ def process_bone_weight_consolidation(mesh_obj: bpy.types.Object, avatar_data: d
             toe_bone = get_bone_name_from_humanoid(avatar_data, toe_humanoid)
             if toe_bone and toe_bone in mesh_obj.vertex_groups:
                 merge_vertex_group_weights(mesh_obj, toe_bone, right_foot_bone)
-                print(f"Merged {toe_bone} weights to {right_foot_bone} in {mesh_obj.name}")
 
 # Merged from propagate_bone_weights.py
 
@@ -415,7 +407,6 @@ def propagate_bone_weights(mesh_obj: bpy.types.Object, temp_group_name: str = "P
     if not vertices_without_weights:
         return None
     
-    print(f"Found {len(vertices_without_weights)} vertices without weights in {mesh_obj.name}")
     
     # 一時的な頂点グループを作成（既存の同名グループがあれば削除）
     if temp_group_name in mesh_obj.vertex_groups:
@@ -454,7 +445,6 @@ def propagate_bone_weights(mesh_obj: bpy.types.Object, temp_group_name: str = "P
         if propagated_this_iteration == 0:
             break
         
-        print(f"Iteration {iteration + 1}: Propagated weights to {propagated_this_iteration} vertices in {mesh_obj.name}")
         total_propagated += propagated_this_iteration
         vertices_without_weights = remaining_vertices
         iteration += 1
@@ -492,7 +482,6 @@ def propagate_bone_weights(mesh_obj: bpy.types.Object, temp_group_name: str = "P
             if group_name in mesh_obj.vertex_groups:
                 mesh_obj.vertex_groups[group_name].add([vert_idx], weight, 'REPLACE')
     
-    print(f"Total: Propagated weights to {total_propagated} vertices in {mesh_obj.name}")
     
     bm.free()
     return temp_group_name
@@ -549,7 +538,6 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                 "UpperChest" not in clothing_humanoid_to_bone and
                 "UpperChest" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving UpperChest bone weights due to Chest condition")
             
             # Condition 2: LeftLowerLeg exists in clothing, LeftFoot missing in clothing but exists in base
             elif (humanoid_name == "LeftFoot" and 
@@ -558,7 +546,6 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                   "LeftFoot" not in clothing_humanoid_to_bone and
                   "LeftFoot" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving LeftFoot bone weights due to LeftLowerLeg condition")
             
             # Condition 2: RightLowerLeg exists in clothing, RightFoot missing in clothing but exists in base
             elif (humanoid_name == "RightFoot" and 
@@ -567,7 +554,6 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                   "RightFoot" not in clothing_humanoid_to_bone and
                   "RightFoot" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving RightFoot bone weights due to RightLowerLeg condition")
             
             # Condition 3: LeftLowerLeg or LeftFoot exists in clothing, LeftToe missing in clothing but exists in base
             elif (humanoid_name == "LeftToe" and 
@@ -576,7 +562,6 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                   "LeftToe" not in clothing_humanoid_to_bone and
                   "LeftToe" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving LeftToe bone weights due to LeftLowerLeg/LeftFoot condition")
             
             # Condition 3: RightLowerLeg or RightFoot exists in clothing, RightToe missing in clothing but exists in base
             elif (humanoid_name == "RightToe" and 
@@ -585,7 +570,6 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                   "RightToe" not in clothing_humanoid_to_bone and
                   "RightToe" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving RightToe bone weights due to RightLowerLeg/RightFoot condition")
 
             elif (humanoid_name == "LeftBreast" and 
                   "LeftBreast" not in clothing_humanoid_to_bone and
@@ -593,7 +577,6 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                   (clothing_humanoid_to_bone["Chest"] in clothing_bone_names or clothing_humanoid_to_bone["UpperChest"] in clothing_bone_names) and
                   "LeftBreast" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving LeftBreast bone weights due to Chest condition")
             
             elif (humanoid_name == "RightBreast" and 
                   "RightBreast" not in clothing_humanoid_to_bone and
@@ -601,13 +584,10 @@ def process_missing_bone_weights(base_mesh: bpy.types.Object, clothing_armature:
                   (clothing_humanoid_to_bone["Chest"] in clothing_bone_names or clothing_humanoid_to_bone["UpperChest"] in clothing_bone_names) and
                   "RightBreast" in base_humanoid_to_bone):
                 should_preserve = True
-                print(f"Preserving RightBreast bone weights due to Chest condition")
             
             if should_preserve:
-                print(f"Skipping processing for preserved bone: {humanoid_name} ({bone_name})")
                 continue
 
-        print(f"Processing missing humanoid bone: {humanoid_name} ({bone_name})")
         
         # Find parent that exists in clothing armature
         current_bone = bone_name
@@ -767,7 +747,6 @@ def adjust_hand_weights(target_obj, armature, base_avatar_data):
 
         # 70度以上の場合の処理
         if min_angle >= 70:
-            print(f"- Minimum angle exceeds 70 degrees ({min_angle} degrees), transferring weights for {side} hand")
             
             # LowerArmとその補助ボーンを取得
             lower_arm_bones = get_lowerarm_and_auxiliary_bones(side)
@@ -776,7 +755,6 @@ def adjust_hand_weights(target_obj, armature, base_avatar_data):
             closest_bone = find_closest_lower_arm_bone(hand_head, lower_arm_bones)
             
             if closest_bone:
-                print(f"- Transferring weights to {closest_bone}")
                 
                 # 各頂点について処理
                 for v in target_obj.data.vertices:
@@ -809,8 +787,6 @@ def adjust_hand_weights(target_obj, armature, base_avatar_data):
                                 continue
             else:
                 print(f"Warning: No suitable LowerArm bone found for {side} hand")
-        else:
-            print(f"- Minimum angle is within acceptable range ({min_angle} degrees), keeping weights for {side} hand")
 
     # 両手の処理を実行
     process_hand(is_right=True)

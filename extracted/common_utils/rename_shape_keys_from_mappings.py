@@ -35,4 +35,3 @@ def rename_shape_keys_from_mappings(meshes, blend_shape_mappings):
         for shape_key, new_name in keys_to_rename:
             old_name = shape_key.name
             shape_key.name = new_name
-            print(f"Renamed shape key: {old_name} -> {new_name} on mesh {obj.name}")

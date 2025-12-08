@@ -25,6 +25,6 @@ class TemplateAdjustmentStage:
         """
         clothing_name = self.processor.ctx.clothing_avatar_data.get("name", None)
         if clothing_name == "Template":
-            print("Templateからの変換: Template FBX不要モード（処理スキップ）")
+            pass  # Auto-inserted
         return True
 

@@ -204,7 +204,6 @@ def apply_max_filter_to_vertex_group(cloth_obj, vertex_group_name, filter_radius
     # 新しいウェイト配列を初期化
     new_weights = np.copy(current_weights)
     
-    print(f"  Maxフィルター処理開始 (半径: {filter_radius})")
     
     # 各頂点に対してMaxフィルターを適用
     for i in range(num_vertices):
@@ -280,7 +279,6 @@ def apply_min_filter_to_vertex_group(cloth_obj, vertex_group_name, filter_radius
     # 新しいウェイト配列を初期化
     new_weights = np.copy(current_weights)
     
-    print(f"  Minフィルター処理開始 (半径: {filter_radius})")
     
     # 各頂点に対してMinフィルターを適用
     for i in range(num_vertices):
@@ -354,7 +352,6 @@ def apply_smoothing_to_vertex_group(cloth_obj, vertex_group_name, smoothing_radi
     # スムージング済みウェイト配列を初期化
     smoothed_weights = np.copy(current_weights)
     
-    print(f"  スムージング処理開始 (半径: {smoothing_radius}, 距離重み付け: {use_distance_weighting}, ガウシアン減衰: {gaussian_falloff})")
     
     # ガウシアン関数のシグマ値（半径の1/3程度が適切）
     sigma = smoothing_radius / 3.0

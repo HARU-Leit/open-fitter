@@ -156,6 +156,3 @@ def run_distance_normal_smoothing(context):
             smoothing_radius=0.05,
             mask_group_name="MF_Blur",
         )
-    else:
-        print("  Body.BaseAvatarオブジェクトが見つからないか、ターゲットグループが空です")
-

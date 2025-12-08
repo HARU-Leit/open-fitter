@@ -57,7 +57,6 @@ class _FindVerticesNearFacesContext:
 
             base_vertices_in_group = _collect_vertices_in_group(self.base_mesh_data, temp_base_vertex_group.index)
             target_face_indices = _select_target_faces(self.base_mesh_data, base_vertices_in_group, self.use_all_faces)
-            print(f"条件を満たす面数: {len(target_face_indices)} (すべて三角形)")
 
             if not target_face_indices:
                 print("警告: 条件を満たす面が見つかりません")
@@ -308,7 +307,6 @@ def _build_and_interpolate(
 ):
     import time
 
-    print("BVHTreeを使用して高速検索を実行中...")
     start_time = time.time()
     bvh, vertices, faces, temp_bm = _build_bvh(base_mesh_data, base_world_matrix, target_face_indices)
 

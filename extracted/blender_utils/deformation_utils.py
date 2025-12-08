@@ -57,7 +57,6 @@ def batch_process_vertices_multi_step(vertices, all_field_points, all_delta_posi
         field_points = all_field_points[step]
         delta_positions = all_delta_positions[step]
         
-        print(f"ステップ {step+1}/{num_steps} の変形を適用中...")
         # KDTreeを使用して近傍点を検索（各ステップで新しいKDTreeを構築）
         kdtree = cKDTree(field_points)
         
@@ -170,8 +169,6 @@ def batch_process_vertices_with_custom_range(vertices, all_field_points, all_del
         delta_positions = all_delta_positions[step].copy()
         original_delta_positions = all_delta_positions[step].copy()
         
-        print(f"ステップ {step_idx+1}/{len(processed_steps)} (step {step}) の変形を適用中...")
-        print(f"ステップ値範囲: {step_start:.3f} -> {step_end:.3f}")
         # 任意の値からの変形
         if start_value != step_start:
             if start_value >= step_start + 0.00001:
@@ -235,7 +232,6 @@ def batch_process_vertices_with_custom_range(vertices, all_field_points, all_del
         # このステップの変位を累積変位に追加
         cumulative_displacements += step_displacements
         
-        print(f"ステップ {step_idx+1} 完了")
     
     # 最終的な変形後の位置を返す
     final_world_positions = np.array([target_matrix @ Vector(v) for v in vertices]) + cumulative_displacements
@@ -688,7 +684,6 @@ def get_deformation_field_multi_step(field_data_path: str) -> dict:
     
     # RBFパラメータの読み込み
     rbf_epsilon = float(data.get('rbf_epsilon', 0.00001))
-    print(f"RBF補間パラメータ: 関数=multi_quadratic_biharmonic, epsilon={rbf_epsilon}")
     
     field_info = {
         'data': data,

@@ -88,7 +88,6 @@ class ExportPreparationStage:
                                 and shape_key_name in obj.data.shape_keys.key_blocks
                             ):
                                 obj.data.shape_keys.key_blocks[shape_key_name].value = value / 100.0
-                                print(f"Set blendshape '{shape_key_name}' on {obj.name} to {value/100.0}")
 
     def _update_cloth_metadata(self, p, time):
         """クロスメタデータを更新"""
@@ -114,12 +113,6 @@ class ExportPreparationStage:
         if p.args.blend_shapes:
             p.blend_shape_labels = [label for label in p.args.blend_shapes.split(',')]
 
-        # シェイプキーのデバッグ出力
-        for obj in p.clothing_meshes:
-            if obj.data.shape_keys:
-                for key_block in obj.data.shape_keys.key_blocks:
-                    print(f"Shape key: {key_block.name} / {key_block.value} found on {obj.name}")
-
         # 生成されたシェイプキーのマージ・クリーンアップ
         merge_and_clean_generated_shapekeys(p.clothing_meshes, p.blend_shape_labels)
 
@@ -136,7 +129,6 @@ class ExportPreparationStage:
                         key_block = obj.data.shape_keys.key_blocks.get(key_name)
                         if key_block:
                             obj.shape_key_remove(key_block)
-                            print(f"Removed shape key: {key_name} from {obj.name}")
 
         # 複数ペアの場合のシェイプキー削除
         if p.pair_index > 0:
@@ -156,7 +148,6 @@ class ExportPreparationStage:
                         ):
                             prev_shape_key = obj.data.shape_keys.key_blocks.get(key_block.name)
                             obj.shape_key_remove(prev_shape_key)
-                            print(f"Removed shape key: {key_block.name} from {obj.name}")
 
         # ハイヒールシェイプキー値設定
         set_highheel_shapekey_values(

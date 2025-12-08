@@ -24,7 +24,6 @@ def subdivide_faces(obj, face_indices, cuts=1, max_distance=0.005):
     had_custom_normals = mesh.has_custom_normals
 
     if not obj or obj.type != 'MESH':
-        print("無効なオブジェクトです")
         return
 
     if len(obj.data.vertices) == 0:
@@ -203,7 +202,6 @@ def subdivide_long_edges(obj, min_edge_length=0.005, max_edge_length_ratio=2.0, 
     had_custom_normals = mesh.has_custom_normals
 
     if not obj or obj.type != 'MESH':
-        print("無効なオブジェクトです")
         return
 
     if len(obj.data.vertices) == 0:
@@ -242,7 +240,6 @@ def subdivide_long_edges(obj, min_edge_length=0.005, max_edge_length_ratio=2.0, 
                 edge_lengths.append(edge.calc_length())
         
         if not edge_lengths:
-            print("エッジが見つかりません")
             bm.free()
             return
             
@@ -258,7 +255,6 @@ def subdivide_long_edges(obj, min_edge_length=0.005, max_edge_length_ratio=2.0, 
             
         threshold_length = median_edge_length * max_edge_length_ratio
         
-        print(f"細分化閾値: {threshold_length:.6f} (中央値の{max_edge_length_ratio}倍)")
         
         # 閾値以上の長さのエッジを特定
         edges_to_subdivide = []
@@ -266,7 +262,6 @@ def subdivide_long_edges(obj, min_edge_length=0.005, max_edge_length_ratio=2.0, 
             if edge.calc_length() >= threshold_length:
                 edges_to_subdivide.append(edge)
         
-        print(f"細分化対象エッジ数: {len(edges_to_subdivide)} / {len(bm.edges)}")
 
         if edges_to_subdivide:
             bmesh.ops.subdivide_edges(
@@ -277,7 +272,6 @@ def subdivide_long_edges(obj, min_edge_length=0.005, max_edge_length_ratio=2.0, 
                 use_single_edge=False,
                 use_only_quads=False
             )
-            print(f"エッジを{cuts}回細分化しました")
 
         # BMeshの内容をメッシュに反映
         bm.to_mesh(mesh)
@@ -317,7 +311,6 @@ def subdivide_selected_vertices(obj_name, vertex_indices, level=2):
     obj = bpy.data.objects.get(obj_name)
     
     if obj is None:
-        print(f"オブジェクト '{obj_name}' が見つかりません")
         return
     
     # オブジェクトを選択してアクティブに

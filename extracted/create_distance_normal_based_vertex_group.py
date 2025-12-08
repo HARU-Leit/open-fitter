@@ -32,7 +32,6 @@ def create_distance_normal_based_vertex_group(body_obj, cloth_obj, distance_thre
     start_time = time.time()
     
     if not body_obj or not cloth_obj:
-        print("指定されたオブジェクトが見つかりません")
         return
     
     # 現在のモードを保存

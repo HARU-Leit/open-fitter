@@ -90,9 +90,8 @@ def apply_masks_and_cleanup(ctx):
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
 
-    print(f"Shape keys in {ctx.target_obj.name}:")
     for key_block in ctx.target_obj.data.shape_keys.key_blocks:
-        print(f"- {key_block.name} (value: {key_block.value})")
+        pass  # Auto-inserted
 
     original_shape_key_name = f"{ctx.shape_key_name}_original"
     for sk in ctx.target_obj.data.shape_keys.key_blocks:
@@ -117,7 +116,6 @@ def apply_masks_and_cleanup(ctx):
             original_shape_key_name
         )
         ctx.target_obj.shape_key_remove(original_shape_key)
-        print(f"Removed shape key: {original_shape_key_name} from {ctx.target_obj.name}")
 
     if ctx.shape_key:
         ctx.target_obj.shape_key_remove(ctx.shape_key)

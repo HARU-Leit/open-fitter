@@ -21,7 +21,6 @@ def merge_added_groups(context):
         remaining_groups = set()
         for group_name in added_groups:
             if group_name not in context.target_obj.vertex_groups:
-                print(f"  {group_name} は削除されています。スキップします")
                 continue
             group = context.target_obj.vertex_groups[group_name]
             verts_with_weight = []
@@ -30,7 +29,6 @@ def merge_added_groups(context):
                 if weight > 0:
                     verts_with_weight.append(v)
             if len(verts_with_weight) == 0:
-                print(f"  {group_name} は空: スキップします")
                 continue
             if group_name in context.bone_to_humanoid:
                 humanoid_group_name = context.bone_to_humanoid[group_name]

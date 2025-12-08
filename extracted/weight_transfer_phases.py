@@ -59,7 +59,6 @@ def _apply_blend_shape_settings(ctx: WeightTransferContext):
             base_obj.data.shape_keys.key_blocks[name].value = value
             left_base_obj.data.shape_keys.key_blocks[name].value = value
             right_base_obj.data.shape_keys.key_blocks[name].value = value
-            print(f"Set {name} to {value}")
 
 
 def _get_existing_target_groups(ctx: WeightTransferContext):
@@ -300,7 +299,7 @@ def _process_obb_groups(ctx: WeightTransferContext):
             edge_count = len(selected_edges)
             for edge_idx, edge in enumerate(selected_edges):
                 if edge_idx % 100 == 0 and edge_idx > 0:
-                    print(f"    エッジ処理進捗: {edge_idx}/{edge_count} ({edge_idx/edge_count*100:.1f}%)")
+                    pass  # Auto-inserted
 
                 bpy.ops.mesh.select_all(action='DESELECT')
                 edge.select = True

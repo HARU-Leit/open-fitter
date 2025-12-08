@@ -71,7 +71,6 @@ class AssetNormalizationStage:
             and p.base_avatar_data
             and p.base_avatar_data.get('basePoseA', None)
         ):
-            print("AポーズのためAポーズ用ベースポーズを使用")
             p.base_avatar_data['basePose'] = p.base_avatar_data['basePoseA']
 
         # ベースポーズ適用（最終pairのみ - base_armatureが必要）

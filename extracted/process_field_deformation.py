@@ -35,13 +35,11 @@ def process_field_deformation(target_obj, field_data_path, blend_shape_labels=No
             for label in blend_shape_labels:
                 # ignore_blendshapeがNoneの場合は自動判別。衣装モデルに同名のシェイプキーがある場合は適用しない
                 if ignore_blendshape is None and target_obj.data.shape_keys and label in target_obj.data.shape_keys.key_blocks:
-                    print(f"Skipping {label} - already has shape key")
                     continue
                 target_avatar_base_shape_key_name = f"{label}_BaseShape"
                 if target_obj.data.shape_keys and target_avatar_base_shape_key_name in target_obj.data.shape_keys.key_blocks:
                     target_avatar_base_shape_key = target_obj.data.shape_keys.key_blocks[target_avatar_base_shape_key_name]
                     target_avatar_base_shape_key.value = 1.0
-                    print(f"Using shape key {target_avatar_base_shape_key_name} for BlendShape deformation")
                     used_shape_keys.append(target_avatar_base_shape_key_name)
                 else:
                     print(f"Warning: Shape key {target_avatar_base_shape_key_name} not found")

@@ -362,7 +362,6 @@ def process_single_blendshape_transition_set(current_settings: list, next_settin
             processed_blend_shapes.add(blend_shape_name)
             
             transitions.append(transition)
-            print(f"  Transition detected [{label}]: {blend_shape_name} {current_value} -> {next_value}")
     
     transition_set = {
         'label': label,
@@ -422,7 +421,6 @@ def set_highheel_shapekey_values(clothing_meshes, blend_shape_labels=None, base_
         if base_label in obj.data.shape_keys.key_blocks:
             shape_key = obj.data.shape_keys.key_blocks[base_label]
             shape_key.value = 1.0
-            print(f"Set shape key '{base_label}' value to 1.0 on {obj.name}")
 
 # Merged from merge_and_clean_generated_shapekeys.py
 
@@ -459,11 +457,9 @@ def merge_and_clean_generated_shapekeys(clothing_meshes, blend_shape_labels=None
                 # generatedシェイプキーの内容でベースシェイプキーを上書き
                 for i, point in enumerate(generated_key.data):
                     base_key.data[i].co = point.co
-                print(f"Merged {generated_name} into {base_name} for {obj.name}")
                 
                 # generatedシェイプキーを削除
                 obj.shape_key_remove(generated_key)
-                print(f"Removed generated shape key: {generated_name} from {obj.name}")
         
         # 従来の機能: blend_shape_labelsで指定されたシェイプキーの削除
         if blend_shape_labels:
@@ -483,7 +479,6 @@ def merge_and_clean_generated_shapekeys(clothing_meshes, blend_shape_labels=None
                 shape_key = obj.data.shape_keys.key_blocks.get(shape_key_name)
                 if shape_key:
                     obj.shape_key_remove(shape_key)
-                    print(f"Removed shape key: {shape_key_name} from {obj.name}")
 
         # 不要なシェイプキーを削除
         shape_keys_to_remove = []
@@ -494,7 +489,6 @@ def merge_and_clean_generated_shapekeys(clothing_meshes, blend_shape_labels=None
             shape_key = obj.data.shape_keys.key_blocks.get(shape_key_name)
             if shape_key:
                 obj.shape_key_remove(shape_key)
-                print(f"Removed shape key: {shape_key_name} from {obj.name}")
 
 # Merged from TransitionCache.py
 
@@ -602,5 +596,4 @@ class TransitionCache:
         vertices2 = best_pair['candidate2']['vertices']
         
         interpolated_vertices = vertices1 + t * (vertices2 - vertices1)
-        print(f"Using linear interpolation with interval size {best_pair['interval_size']:.6f} for {changing_blendshape}")
         return interpolated_vertices

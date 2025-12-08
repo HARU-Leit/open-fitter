@@ -36,7 +36,6 @@ def process_blendshape_transitions(current_config: dict, next_config: dict) -> N
         # 設定ファイルのディレクトリを取得
         current_config_dir = os.path.dirname(os.path.abspath(current_config['config_path']))
         
-        print(f"Processing BlendShape transitions between {os.path.basename(current_config['config_path'])} and {os.path.basename(next_config['config_path'])}")
         
         all_transition_sets = []
         all_default_transition_sets = []
@@ -66,7 +65,6 @@ def process_blendshape_transitions(current_config: dict, next_config: dict) -> N
                 'Basis', all_target_settings, all_target_mask_bones, next_source_settings, blend_shape_fields, current_config_dir, None
             )
             
-            print(f"  Best matching target for root level: '{best_label}'")
             
             # 最適なtargetBlendShapeSettingsとsourceBlendShapeSettingsの遷移を作成
             basis_transitions = process_single_blendshape_transition_set(
@@ -97,7 +95,6 @@ def process_blendshape_transitions(current_config: dict, next_config: dict) -> N
                     next_field_source_label, all_target_settings, all_target_mask_bones, next_field_source_settings, blend_shape_fields, current_config_dir, next_field_mask_bones
                 )
                 
-                print(f"  Best matching target for field '{next_field_source_label}': '{best_label}'")
                 
                 # 遷移を作成
                 field_transitions = process_single_blendshape_transition_set(

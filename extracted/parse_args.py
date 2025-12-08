@@ -31,7 +31,6 @@ def parse_args():
     parser.add_argument('--name-conv', type=str, help='Path to bone name conversion JSON file')
     parser.add_argument('--mesh-renderers', type=str, help='Semicolon-separated list of meshObject,parentObject pairs')
     
-    print(sys.argv)
 
     # Get all args after "--"
     argv = sys.argv
