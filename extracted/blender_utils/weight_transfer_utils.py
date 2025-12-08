@@ -330,8 +330,6 @@ def create_overlapping_vertices_attributes(clothing_meshes, base_avatar_data, di
         overlap_attr_name: 重なり頂点フラグ用のカスタム属性の名前
         world_pos_attr_name: ワールド座標を保存するカスタム属性の名前
     """
-    print(f"Creating custom attributes for overlapping vertices with similar weight patterns...")
-    
     # チェック対象の頂点グループを取得
     target_groups = get_humanoid_and_auxiliary_bone_groups(base_avatar_data)
     

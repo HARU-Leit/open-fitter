@@ -189,7 +189,6 @@ def subdivide_breast_faces(target_obj, clothing_avatar_data):
                     breast_related_faces.add(face.index)
             
             if breast_related_faces:
-                print(f"Subdividing {len(breast_related_faces)} breast-related faces...")
                 subdivide_faces(target_obj, list(breast_related_faces), cuts=1)
 
 # Merged from subdivide_long_edges.py

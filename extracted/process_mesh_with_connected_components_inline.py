@@ -98,11 +98,9 @@ def process_mesh_with_connected_components_inline(obj, field_data_path, blend_sh
     
     # 分離されたオブジェクトを削除
     for sep_obj in separated_objects:
-        print(f"Removing {sep_obj.name}")
         bpy.data.objects.remove(sep_obj, do_unlink=True)
     # 分離されていないオブジェクトを削除
     for sep_obj in non_separated_objects:
-        print(f"Removing {sep_obj.name}")
         bpy.data.objects.remove(sep_obj, do_unlink=True)
     
     # 分離しないコンポーネントのリストを使用して再度分離を行う

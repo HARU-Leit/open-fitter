@@ -127,19 +127,8 @@ def apply_masks_and_cleanup(ctx):
             )
             if unused_shape_key:
                 ctx.target_obj.shape_key_remove(unused_shape_key)
-                print(
-                    f"Removed shape key: {unused_shape_key_name} from {ctx.target_obj.name}"
-                )
-            else:
-                print(f"[Warning] {unused_shape_key_name} is not found in shape keys")
-        else:
-            print(f"[Warning] {unused_shape_key_name} is not found in shape keys")
 
     if ctx.config_generated_shape_keys:
-        print(
-            f"Applying mask weights to generated shape keys: {list(ctx.config_generated_shape_keys.keys())}"
-        )
-
         basis_shape_key = ctx.target_obj.data.shape_keys.key_blocks.get(basis_name)
         if basis_shape_key:
             basis_positions = np.array([v.co for v in basis_shape_key.data])
@@ -167,10 +156,6 @@ def apply_masks_and_cleanup(ctx):
 
                     for i, vertex in enumerate(shape_key_to_mask.data):
                         vertex.co = new_positions[i]
-
-                    print(
-                        f"Applied mask weights to shape key: {shape_key_name_to_mask}"
-                    )
 
 
 def finalize(ctx):

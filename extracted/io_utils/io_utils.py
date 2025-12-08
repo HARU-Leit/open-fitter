@@ -149,7 +149,6 @@ def load_cloth_metadata(filepath):
                 metadata_by_mesh[mesh_name] = vertex_max_distances
                 vertex_index_mapping[mesh_name] = mesh_vertex_mapping
                 
-                print(f"Processed {len(vertex_max_distances)} vertices for mesh {mesh_name}")
                 # マッピングできなかった頂点を特定
                 mapped_indices = set(int(idx) for idx in vertex_max_distances.keys())
                 unmapped_indices = set(range(len(vertices_world))) - mapped_indices
@@ -478,8 +477,6 @@ def restore_vertex_weights(mesh_obj: bpy.types.Object, weights_data: dict) -> No
         original_id = custom_attr.data[current_vert.index].value
         current_to_original_mapping[current_vert.index] = original_id
     
-    print(f"Restoring vertex weights using custom attribute mapping for {len(mesh.vertices)} vertices in {mesh_obj.name}")
-    
     # 保存されたウェイトを復元（カスタム属性を使用して対応を取る）
     restored_count = 0
     for current_vert_index, original_vert_id in current_to_original_mapping.items():
@@ -490,8 +487,6 @@ def restore_vertex_weights(mesh_obj: bpy.types.Object, weights_data: dict) -> No
                     group = mesh_obj.vertex_groups[group_name]
                     group.add([current_vert_index], weight, 'REPLACE')
             restored_count += 1
-    
-    print(f"Successfully restored weights for {restored_count} vertices in {mesh_obj.name}")
 
 # Merged from weights_io.py
 

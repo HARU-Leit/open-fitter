@@ -121,7 +121,6 @@ def merge_auxiliary_to_humanoid_weights(mesh_obj: bpy.types.Object, avatar_data:
             humanoid_bone = aux_to_humanoid[aux_bone]
             # Create Humanoid bone group if it doesn't exist
             if humanoid_bone not in mesh_obj.vertex_groups:
-                print(f"Creating missing Humanoid bone group {humanoid_bone} for {mesh_obj.name}")
                 mesh_obj.vertex_groups.new(name=humanoid_bone)
 
             # Get the vertex groups
@@ -231,7 +230,6 @@ def propagate_weights_to_side_vertices(
         iteration += 1
 
     if vertices_to_process:
-        print(f"Restoring original weights for {len(vertices_to_process)} remaining vertices")
         for vert_idx in vertices_to_process:
             if vert_idx in original_humanoid_weights:
                 for group in target_obj.vertex_groups:

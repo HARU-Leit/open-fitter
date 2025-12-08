@@ -624,7 +624,6 @@ def process_humanoid_vertex_groups(mesh_obj: bpy.types.Object, clothing_armature
             should_add_optional_humanoid_bone = True
         
         if should_add_optional_humanoid_bone:
-            print(f"Adding optional humanoid bone group: {humanoid_name} ({bone_name})")
             if bone_name not in existing_groups:
                 mesh_obj.vertex_groups.new(name=bone_name)
             # 補助ボーンの頂点グループを追加

@@ -59,9 +59,6 @@ class WeightTransferExecutionStage:
 
             if obj in p.containing_objects and p.containing_objects[obj]:
                 contained_objects = p.containing_objects[obj]
-                print(
-                    f"{obj.name} contains {contained_objects} other objects within distance 0.02 - applying joint weight transfer"
-                )
 
                 temporarily_merge_for_weight_transfer(
                     obj,

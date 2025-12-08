@@ -511,13 +511,7 @@ class _ContainingContext:
                     seen_objects.add(obj)
 
         if duplicate_objects:
-            duplicate_names = sorted(
-                {getattr(obj, "name", str(id(obj))) for obj in duplicate_objects}
-            )
-            print(
-                "find_containing_objects: 同じオブジェクトが複数回検出されました -> "
-                + ", ".join(duplicate_names)
-            )
+            pass  # Duplicate detection logged internally
 
     # ---- オーケストレーション ----
     def run(self):

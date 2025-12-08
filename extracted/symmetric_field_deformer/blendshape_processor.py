@@ -82,9 +82,6 @@ def process_config_blendshapes(ctx):
                         ctx.target_obj.data.shape_keys.key_blocks[
                             temp_shape_key_name
                         ].value = 1.0
-                        print(
-                            f"temp_shape_key_name: {temp_shape_key_name} is found in shape keys"
-                        )
         else:
             for source_blend_shape_setting in source_blend_shape_settings:
                 source_blend_shape_name = source_blend_shape_setting.get("name", "")
@@ -99,9 +96,6 @@ def process_config_blendshapes(ctx):
                         )
                     )
                     source_blend_shape_key.value = source_blend_shape_value
-                    print(
-                        f"source_blend_shape_name: {source_blend_shape_name} is found in shape keys"
-                    )
                 else:
                     temp_blend_shape_key_name = f"{source_blend_shape_name}_temp"
                     if (
@@ -111,9 +105,6 @@ def process_config_blendshapes(ctx):
                         ctx.target_obj.data.shape_keys.key_blocks[
                             temp_blend_shape_key_name
                         ].value = source_blend_shape_value
-                        print(
-                            f"temp_blend_shape_key_name: {temp_blend_shape_key_name} is found in shape keys"
-                        )
 
         blend_shape_key_name = label
         if (
@@ -123,9 +114,6 @@ def process_config_blendshapes(ctx):
             blend_shape_key_name = f"{label}_generated"
 
         if os.path.exists(field_path):
-            print(
-                f"Processing config blend shape field: {label} -> {blend_shape_key_name}"
-            )
             generated_shape_key = process_field_deformation(
                 ctx.target_obj,
                 field_path,
@@ -179,9 +167,6 @@ def process_skipped_transitions(ctx):
 
         source_label = get_source_label(label, ctx.config_data)
         if source_label not in ctx.label_to_target_shape_key_name:
-            print(
-                f"Skipping {label} - source label {source_label} not in label_to_target_shape_key_name"
-            )
             continue
 
         mask_bones = transition_set.get("mask_bones", [])
@@ -204,9 +189,6 @@ def process_skipped_transitions(ctx):
         )
 
         if not target_shape_key:
-            print(
-                f"Skipping {label} - target shape key {target_shape_key_name} not found"
-            )
             continue
 
         blend_shape_key_name = label
@@ -232,10 +214,6 @@ def process_skipped_transitions(ctx):
                     "clothing_avatar_data": ctx.clothing_avatar_data,
                     "save_original_shape_key": False,
                 }
-            )
-
-            print(
-                f"Added deferred transition: {label} -> {skipped_blend_shape_key.name}"
             )
 
             ctx.config_generated_shape_keys[skipped_blend_shape_key.name] = mask_weights
@@ -315,9 +293,6 @@ def process_clothing_blendshapes(ctx):
                             temp_shape_key_name
                         ].value = 1.0
                         basis_field_path2 = source_field_path
-                        print(
-                            f"temp_shape_key_name: {temp_shape_key_name} is found in shape keys"
-                        )
 
         key_block.value = 1.0
 
@@ -375,9 +350,6 @@ def process_base_avatar_blendshapes(ctx):
         label = blend_field["label"]
 
         if label in ctx.config_blend_shape_labels:
-            print(
-                f"Skipping base avatar blend shape field '{label}' (already processed from config)"
-            )
             continue
 
         field_path = os.path.join(
@@ -453,9 +425,7 @@ def process_base_avatar_blendshapes(ctx):
                     shape_key_b.data[i].co = deformed_local_pos
                     matrix_armature_inv_fallback = matrix_armature_inv
             else:
-                print(
-                    f"Skipping creation of shape key '{label}' as it has no displacement"
-                )
+                pass  # No displacement, skip creation
 
         else:
             print(f"[Warning] Field file not found for blend shape {label}")

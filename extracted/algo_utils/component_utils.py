@@ -152,9 +152,6 @@ def _should_exclude_by_intersection(ctx: _WeightPatternContext, component_points
     if obb is None:
         return False
     if check_mesh_obb_intersection(ctx.base_obj, obb):
-        print(
-            f"Component with {len(component_points)} vertices intersects with base mesh, excluding from rigid transfer"
-        )
         return True
     return False
 

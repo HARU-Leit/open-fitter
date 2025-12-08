@@ -167,10 +167,5 @@ class MeshDeformationStage:
                 obj.shape_key_remove(generated_key)
 
     def _print_shape_key_summary(self, p):
-        """シェイプキーのサマリーを出力"""
-        for obj in p.clothing_meshes:
-            if obj.data.shape_keys:
-                for key_block in obj.data.shape_keys.key_blocks:
-                    print(
-                        f"Shape key: {key_block.name} / {key_block.value} found on {obj.name}"
-                    )
+        """シェイプキーのサマリを出力"""
+        pass  # デバッグ用のため無効化
