@@ -1,1 +1,0 @@
-ruff check ./extracted --select F401,I --fix

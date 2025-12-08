@@ -1,14 +1,18 @@
 # すべてを無視する（デフォルト！E
 /*
 
-# extracted/ �f�B���N�g���͒ǐՑΏ�
+# extracted/ ディレクトリは追跡対象
 !/extracted/
 !/extracted/**
 
-# ルート直下�Epyファイルは追跡対象
+# tools/ ディレクトリは追跡対象
+!/tools/
+!/tools/**
+
+# ルート直下のpyファイルは追跡対象
 !/*.py
 
-# UnityProjectチE��レクトリは基本無視だが、一部追跡
+# UnityProjectチE��レクトリは基本無視だが、一部追跡
 !/UnityProject/
 /UnityProject/*
 
@@ -24,10 +28,10 @@
 !/UnityProject/Assets/OpenFitter/Scripts/
 !/UnityProject/Assets/OpenFitter/Scripts/**/*.cs
 
-# .gitignore自体�E追跡対象
+# .gitignore自体�E追跡対象
 !.gitignore
 
-# README等�Eドキュメントがあれば追跡対象にする場吁E
+# README等�Eドキュメントがあれば追跡対象にする場吁E
 !/LICENSE
 !/README.md
 #! Allow tracking of GPL core directory
