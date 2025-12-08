@@ -31,6 +31,9 @@
 # .gitignore自体�E追跡対象
 !.gitignore
 
+# .gitattributesは追跡対象
+!.gitattributes
+
 # README等�Eドキュメントがあれば追跡対象にする場吁E
 !/LICENSE
 !/README.md
