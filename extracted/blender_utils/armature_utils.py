@@ -238,8 +238,7 @@ def normalize_clothing_bone_names(clothing_armature: bpy.types.Object, clothing_
                 
         if matching_bone:
             bone_name_changes[matching_bone] = original_bone_name
-        else:
-            print(f"[Warning] No matching bone found for '{original_bone_name}' (pattern: '{normalized_pattern}')")
+        # マッチしないボーンは衣装固有のボーンとして無視（警告不要）
     
     # Update vertex group names in all clothing meshes
     if bone_name_changes:
