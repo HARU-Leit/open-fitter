@@ -25,15 +25,22 @@ class AssetLoadingStage:
     
     責務:
         - ベースBlendファイルの読み込み
-        - ベースアバターFBXのインポートと処理
+        - ベースアバターFBXのインポートと処理（最終pairのみ）
         - 衣装アバターFBXのインポートと処理
         - メタデータ（Cloth, Material）の読み込み
+    
+    ベースメッシュ依存:
+        - 最終pairでのみbase_mesh/base_armatureをロード
+        - 中間pairではbase_avatar_data（JSON）のみロード
     
     成果物:
         - base_mesh, base_armature, base_avatar_data
         - clothing_meshes, clothing_armature, clothing_avatar_data
         - cloth_metadata, vertex_index_mapping
     """
+    
+    # ベースメッシュ依存フラグ: 最終pairでのみ必要
+    REQUIRES_BASE_MESH = 'final_pair_only'
 
     def __init__(self, pipeline):
         self.pipeline = pipeline

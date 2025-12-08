@@ -26,10 +26,14 @@ class AssetNormalizationStage:
     """読み込まれたアセットの正規化と初期設定を行うステージ
     
     責務:
-        - Aポーズ判定とベースポーズ適用
-        - ウェイト転送のセットアップ
+        - Aポーズ判定とベースポーズ適用（最終pairのみ）
+        - ウェイト転送のセットアップ（最終pairのみ）
         - ボーン名の正規化
-        - ベースアバターのウェイト更新・正規化
+        - ベースアバターのウェイト更新・正規化（最終pairのみ）
+    
+    ベースメッシュ依存:
+        - 最終pairでのみbase_mesh/base_armatureを使用
+        - 中間pairではベースメッシュ関連処理をスキップ
     
     前提:
         - AssetLoadingStage が完了していること
@@ -39,6 +43,9 @@ class AssetNormalizationStage:
         - base_weights_time タイムスタンプ
         - リターゲティング計算を開始できる整った状態
     """
+    
+    # ベースメッシュ依存フラグ: 最終pairでのみ必要
+    REQUIRES_BASE_MESH = 'final_pair_only'
 
     def __init__(self, pipeline):
         self.pipeline = pipeline

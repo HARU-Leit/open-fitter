@@ -20,12 +20,19 @@ class BoneReplacementStage:
     責務:
         - ベースアーマチュアから衣装アーマチュアへのヒューマノイドボーン置換
     
+    ベースメッシュ依存:
+        - 必須（base_armatureからボーンをコピー）
+        - 最終pairでのみ実行される
+    
     前提:
         - PoseFinalizationStage が完了していること
     
     成果物:
         - ヒューマノイドボーンが置換された衣装アーマチュア
     """
+    
+    # ベースメッシュ依存フラグ: 必須（base_armature必要）
+    REQUIRES_BASE_MESH = True
 
     def __init__(self, pipeline):
         self.pipeline = pipeline

@@ -24,6 +24,9 @@ class BlendShapeApplicationStage:
         - BlendShapeラベルの解析
         - 各衣装メッシュへのDeformation Field適用
     
+    ベースメッシュ依存:
+        - 不要（衣装データとfield_dataのみ使用）
+    
     前提:
         - AssetNormalizationStage が完了していること
     
@@ -31,6 +34,9 @@ class BlendShapeApplicationStage:
         - blend_shape_labels リスト
         - BlendShape変形が適用された衣装メッシュ
     """
+    
+    # ベースメッシュ依存フラグ: 不要
+    REQUIRES_BASE_MESH = False
 
     def __init__(self, pipeline):
         self.pipeline = pipeline

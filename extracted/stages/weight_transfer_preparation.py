@@ -35,11 +35,15 @@ class WeightTransferPreparationStage:
     """ウェイト転送の準備処理を担当するステージ
     
     責務:
-        - ベースメッシュの左右複製
+        - ベースメッシュの左右複製（最終pairのみ）
         - メッシュ間の包含関係検出
-        - subHumanoidBones/subAuxiliaryBones の適用
-        - Template固有の頂点グループ処理
+        - subHumanoidBones/subAuxiliaryBones の適用（最終pairのみ）
+        - Template固有の頂点グループ処理（最終pairのみ）
         - 各メッシュの前処理（一時シェイプキー、欠損ボーンウェイト等）
+    
+    ベースメッシュ依存:
+        - 最終pairでのみbase_mesh/base_armatureを使用
+        - 中間pairではベースメッシュ関連処理をスキップ
     
     前提:
         - MeshDeformationStage が完了していること
@@ -49,6 +53,9 @@ class WeightTransferPreparationStage:
         - armature_settings_dict（アーマチュア設定保存）
         - original_humanoid_bones, original_auxiliary_bones
     """
+    
+    # ベースメッシュ依存フラグ: 最終pairでのみ必要
+    REQUIRES_BASE_MESH = 'final_pair_only'
 
     def __init__(self, pipeline):
         self.pipeline = pipeline

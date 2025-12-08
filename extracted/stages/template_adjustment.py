@@ -23,7 +23,21 @@ from io_utils.io_utils import load_vertex_group
 
 
 class TemplateAdjustmentStage:
-    """Applies Template-specific corrections before further processing."""
+    """Applies Template-specific corrections before further processing.
+    
+    責務:
+        - Template固有の股下頂点グループ作成
+        - Templateメッシュの調整処理
+    
+    ベースメッシュ依存:
+        - 不要（衣装データのみ使用）
+    
+    前提:
+        - AssetNormalizationStage が完了していること
+    """
+    
+    # ベースメッシュ依存フラグ: 不要
+    REQUIRES_BASE_MESH = False
 
     def __init__(self, processor):
         self.processor = processor
