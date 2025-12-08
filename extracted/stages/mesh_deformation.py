@@ -135,15 +135,22 @@ class MeshDeformationStage:
         self._merge_generated_shape_keys(obj)
 
     def _cleanup_small_weights(self, obj, time):
-        """微小ウェイト（0.0005未満）を除外"""
+        """微小ウェイト（0.0005未満）を除外（バッチ処理版）"""
+        # グループごとに削除対象の頂点インデックスを収集
+        groups_to_remove_vertices = {}
+        
         for vert in obj.data.vertices:
-            groups_to_remove = []
             for g in vert.groups:
                 if g.weight < 0.0005:
-                    groups_to_remove.append(g.group)
-            for group_idx in groups_to_remove:
+                    if g.group not in groups_to_remove_vertices:
+                        groups_to_remove_vertices[g.group] = []
+                    groups_to_remove_vertices[g.group].append(vert.index)
+        
+        # グループごとにバッチで削除（1グループにつき1回のremove呼び出し）
+        for group_idx, vert_indices in groups_to_remove_vertices.items():
+            if vert_indices:
                 try:
-                    obj.vertex_groups[group_idx].remove([vert.index])
+                    obj.vertex_groups[group_idx].remove(vert_indices)
                 except RuntimeError:
                     continue
     def _merge_generated_shape_keys(self, obj):

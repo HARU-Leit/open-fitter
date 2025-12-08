@@ -22,7 +22,7 @@ def batch_process_vertices_multi_step(vertices, all_field_points, all_delta_posi
                                      field_matrix, field_matrix_inv, target_matrix, target_matrix_inv, 
                                      deform_weights=None, rbf_epsilon=0.00001, batch_size=1000, k=8):
     """
-    多段階のDeformation Fieldを使用して頂点を処理する（SaveAndApplyFieldAuto.pyのapply_field_dataと同様）
+    多段階のDeformation Fieldを使用して頂点を処理する（NumPyベクトル化版）
     
     Parameters:
         vertices: 処理対象の頂点配列
@@ -45,8 +45,17 @@ def batch_process_vertices_multi_step(vertices, all_field_points, all_delta_posi
     
     # 累積変位を初期化
     cumulative_displacements = np.zeros((num_vertices, 3))
-    # 現在の頂点位置（ワールド座標）を保存
-    current_world_positions = np.array([target_matrix @ Vector(v) for v in vertices])
+    
+    # 行列をNumPy配列に変換（ベクトル化のため）
+    target_matrix_np = np.array(target_matrix.to_3x3())
+    field_matrix_inv_np = np.array(field_matrix_inv.to_3x3())
+    field_matrix_np = np.array(field_matrix.to_3x3())
+    target_translation = np.array(target_matrix.translation)
+    field_inv_translation = np.array(field_matrix_inv.translation)
+    
+    # 現在の頂点位置（ワールド座標）をベクトル化で計算
+    vertices_np = np.array(vertices)
+    current_world_positions = (vertices_np @ target_matrix_np.T) + target_translation
 
     # もしdeform_weightsがNoneの場合は、全ての頂点のウェイトを1.0とする
     if deform_weights is None:
@@ -59,56 +68,57 @@ def batch_process_vertices_multi_step(vertices, all_field_points, all_delta_posi
         
         # KDTreeを使用して近傍点を検索（各ステップで新しいKDTreeを構築）
         kdtree = cKDTree(field_points)
+        k_use = min(k, len(field_points))
         
         # カスタムRBF補間で新しい頂点位置を計算
         step_displacements = np.zeros((num_vertices, 3))
         
         for start_idx in range(0, num_vertices, batch_size):
             end_idx = min(start_idx + batch_size, num_vertices)
+            batch_size_actual = end_idx - start_idx
             batch_weights = deform_weights[start_idx:end_idx]
             
-            # バッチ内の全頂点をフィールド空間に変換（現在の累積変位を考慮）
-            batch_world = current_world_positions[start_idx:end_idx].copy()
-            batch_field = np.array([field_matrix_inv @ Vector(v) for v in batch_world])
+            # バッチ内の全頂点をフィールド空間に変換（ベクトル化）
+            batch_world = current_world_positions[start_idx:end_idx]
+            batch_field = (batch_world @ field_matrix_inv_np.T) + field_inv_translation
             
-            # 各頂点ごとに逆距離加重法で補間
-            batch_displacements = np.zeros((len(batch_field), 3))
+            # 全バッチに対してKDTree検索を一括実行
+            distances, indices = kdtree.query(batch_field, k=k_use)
             
-            for i, point in enumerate(batch_field):
-                # 近傍点を検索（最大k点）
-                k_use = min(k, len(field_points))
-                distances, indices = kdtree.query(point, k=k_use)
-                
-                # 距離が0の場合（完全に一致する点がある場合）
-                if distances[0] < 1e-10:
-                    batch_displacements[i] = delta_positions[indices[0]]
-                    continue
-                
-                # 逆距離の重みを計算
-                weights = 1.0 / np.sqrt(distances**2 + rbf_epsilon**2)
-                
-                # 重みの正規化
-                weights /= np.sum(weights)
-                
-                # 重み付き平均で変位を計算
-                weighted_deltas = delta_positions[indices] * weights[:, np.newaxis]
-                batch_displacements[i] = np.sum(weighted_deltas, axis=0) * batch_weights[i]
+            # 距離が0に近い点のマスク
+            exact_match_mask = distances[:, 0] < 1e-10
             
-            # ワールド空間での変位を計算
-            for i, displacement in enumerate(batch_displacements):
-                world_displacement = field_matrix.to_3x3() @ Vector(displacement)
-                step_displacements[start_idx + i] = world_displacement
-                
-                # 現在のワールド位置を更新（次のステップのために）
-                current_world_positions[start_idx + i] += world_displacement
+            # 逆距離重みを計算（ベクトル化）
+            weights = 1.0 / np.sqrt(distances**2 + rbf_epsilon**2)
+            weights_sum = weights.sum(axis=1, keepdims=True)
+            weights = weights / weights_sum
+            
+            # 重み付き変位を計算（ベクトル化）
+            # delta_positions[indices] -> (batch_size, k, 3)
+            neighbor_deltas = delta_positions[indices]
+            # weights[:, :, np.newaxis] -> (batch_size, k, 1) でブロードキャスト
+            batch_displacements = np.sum(neighbor_deltas * weights[:, :, np.newaxis], axis=1)
+            
+            # deform_weightsを適用
+            batch_displacements *= batch_weights[:, np.newaxis]
+            
+            # 距離が0の場合は直接代入
+            if np.any(exact_match_mask):
+                batch_displacements[exact_match_mask] = delta_positions[indices[exact_match_mask, 0]]
+            
+            # ワールド空間での変位を計算（ベクトル化）
+            world_displacements = batch_displacements @ field_matrix_np.T
+            step_displacements[start_idx:end_idx] = world_displacements
+            
+            # 現在のワールド位置を更新（次のステップのために）
+            current_world_positions[start_idx:end_idx] += world_displacements
         
         # このステップの変位を累積変位に追加
         cumulative_displacements += step_displacements
-        
-        #print(f"ステップ {step+1} 完了: 最大変位 {np.max(np.linalg.norm(step_displacements, axis=1)):.6f}")
     
-    # 最終的な変形後の位置を返す
-    final_world_positions = np.array([target_matrix @ Vector(v) for v in vertices]) + cumulative_displacements
+    # 最終的な変形後の位置を返す（ベクトル化）
+    initial_world_positions = (vertices_np @ target_matrix_np.T) + target_translation
+    final_world_positions = initial_world_positions + cumulative_displacements
     return final_world_positions
 
 # Merged from batch_process_vertices_with_custom_range.py
@@ -118,7 +128,7 @@ def batch_process_vertices_with_custom_range(vertices, all_field_points, all_del
                                             start_value, end_value, 
                                             deform_weights=None, rbf_epsilon=0.00001, batch_size=1000, k=8):
     """
-    任意の値の範囲でフィールドによる変形を行う
+    任意の値の範囲でフィールドによる変形を行う（NumPyベクトル化版）
     
     Parameters:
         vertices: 処理対象の頂点配列
@@ -144,8 +154,17 @@ def batch_process_vertices_with_custom_range(vertices, all_field_points, all_del
     
     # 累積変位を初期化
     cumulative_displacements = np.zeros((num_vertices, 3))
-    # 現在の頂点位置（ワールド座標）を保存
-    current_world_positions = np.array([target_matrix @ Vector(v) for v in vertices])
+    
+    # 行列をNumPy配列に変換（ベクトル化のため）
+    target_matrix_np = np.array(target_matrix.to_3x3())
+    field_matrix_inv_np = np.array(field_matrix_inv.to_3x3())
+    field_matrix_np = np.array(field_matrix.to_3x3())
+    target_translation = np.array(target_matrix.translation)
+    field_inv_translation = np.array(field_matrix_inv.translation)
+    
+    # 現在の頂点位置（ワールド座標）をベクトル化で計算
+    vertices_np = np.array(vertices)
+    current_world_positions = (vertices_np @ target_matrix_np.T) + target_translation
 
     # もしdeform_weightsがNoneの場合は、全ての頂点のウェイトを1.0とする
     if deform_weights is None:
@@ -186,6 +205,7 @@ def batch_process_vertices_with_custom_range(vertices, all_field_points, all_del
         
         # KDTreeを使用して近傍点を検索
         kdtree = cKDTree(field_points)
+        k_use = min(k, len(field_points))
         
         # カスタムRBF補間で新しい頂点位置を計算
         step_displacements = np.zeros((num_vertices, 3))
@@ -194,47 +214,45 @@ def batch_process_vertices_with_custom_range(vertices, all_field_points, all_del
             end_idx = min(start_idx + batch_size, num_vertices)
             batch_weights = deform_weights[start_idx:end_idx]
             
-            # バッチ内の全頂点をフィールド空間に変換
-            batch_world = current_world_positions[start_idx:end_idx].copy()
-            batch_field = np.array([field_matrix_inv @ Vector(v) for v in batch_world])
+            # バッチ内の全頂点をフィールド空間に変換（ベクトル化）
+            batch_world = current_world_positions[start_idx:end_idx]
+            batch_field = (batch_world @ field_matrix_inv_np.T) + field_inv_translation
             
-            # 各頂点ごとに逆距離加重法で補間
-            batch_displacements = np.zeros((len(batch_field), 3))
+            # 全バッチに対してKDTree検索を一括実行
+            distances, indices = kdtree.query(batch_field, k=k_use)
             
-            for i, point in enumerate(batch_field):
-                # 近傍点を検索（最大k点）
-                k_use = min(k, len(field_points))
-                distances, indices = kdtree.query(point, k=k_use)
-                
-                # 距離が0の場合（完全に一致する点がある場合）
-                if distances[0] < 1e-10:
-                    batch_displacements[i] = delta_positions[indices[0]]
-                    continue
-                
-                # 逆距離の重みを計算
-                weights = 1.0 / np.sqrt(distances**2 + rbf_epsilon**2)
-                
-                # 重みの正規化
-                weights /= np.sum(weights)
-                
-                # 重み付き平均で変位を計算
-                weighted_deltas = delta_positions[indices] * weights[:, np.newaxis]
-                batch_displacements[i] = np.sum(weighted_deltas, axis=0) * batch_weights[i]
+            # 距離が0に近い点のマスク
+            exact_match_mask = distances[:, 0] < 1e-10
             
-            # ワールド空間での変位を計算
-            for i, displacement in enumerate(batch_displacements):
-                world_displacement = field_matrix.to_3x3() @ Vector(displacement)
-                step_displacements[start_idx + i] = world_displacement
-                
-                # 現在のワールド位置を更新（次のステップのために）
-                current_world_positions[start_idx + i] += world_displacement
+            # 逆距離重みを計算（ベクトル化）
+            weights = 1.0 / np.sqrt(distances**2 + rbf_epsilon**2)
+            weights_sum = weights.sum(axis=1, keepdims=True)
+            weights = weights / weights_sum
+            
+            # 重み付き変位を計算（ベクトル化）
+            neighbor_deltas = delta_positions[indices]
+            batch_displacements = np.sum(neighbor_deltas * weights[:, :, np.newaxis], axis=1)
+            
+            # deform_weightsを適用
+            batch_displacements *= batch_weights[:, np.newaxis]
+            
+            # 距離が0の場合は直接代入
+            if np.any(exact_match_mask):
+                batch_displacements[exact_match_mask] = delta_positions[indices[exact_match_mask, 0]]
+            
+            # ワールド空間での変位を計算（ベクトル化）
+            world_displacements = batch_displacements @ field_matrix_np.T
+            step_displacements[start_idx:end_idx] = world_displacements
+            
+            # 現在のワールド位置を更新（次のステップのために）
+            current_world_positions[start_idx:end_idx] += world_displacements
         
         # このステップの変位を累積変位に追加
         cumulative_displacements += step_displacements
-        
     
-    # 最終的な変形後の位置を返す
-    final_world_positions = np.array([target_matrix @ Vector(v) for v in vertices]) + cumulative_displacements
+    # 最終的な変形後の位置を返す（ベクトル化）
+    initial_world_positions = (vertices_np @ target_matrix_np.T) + target_translation
+    final_world_positions = initial_world_positions + cumulative_displacements
     return final_world_positions
 
 # Merged from inverse_bone_deform_all_vertices.py

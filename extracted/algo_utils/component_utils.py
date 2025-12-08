@@ -7,6 +7,7 @@ from algo_utils.bone_group_utils import (
     get_humanoid_and_auxiliary_bone_groups,
 )
 from algo_utils.vertex_group_utils import check_uniform_weights
+from collections import deque
 from dataclasses import dataclass
 from math_utils.geometry_utils import calculate_component_size
 from math_utils.geometry_utils import calculate_obb
@@ -49,12 +50,12 @@ def find_connected_components(mesh_obj):
         # 未訪問の頂点から開始
         start_idx = next(iter(unvisited))
         
-        # 幅優先探索で連結成分を検出
+        # 幅優先探索で連結成分を検出（dequeでO(1)のpopleftを使用）
         component = set()
-        queue = [start_idx]
+        queue = deque([start_idx])
         
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()  # O(1) - list.pop(0)はO(n)
             if current in unvisited:
                 unvisited.remove(current)
                 component.add(vert_indices[current])  # 元のメッシュのインデックスに変換して追加
