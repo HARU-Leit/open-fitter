@@ -33,6 +33,12 @@ def process_blendshape_transitions(current_config: dict, next_config: dict) -> N
         blend_shape_groups = get_blendshape_groups(current_base_avatar_data)
         blend_shape_fields, inverted_blend_shape_fields = get_deformation_fields_mapping(current_base_avatar_data)
         
+        # BlendShapeFieldsが空の場合はスキップ（fallbackモードなど）
+        if not blend_shape_fields and not inverted_blend_shape_fields:
+            current_config['config_data']['blend_shape_transition_sets'] = []
+            current_config['config_data']['blend_shape_default_transition_sets'] = []
+            return
+        
         # 設定ファイルのディレクトリを取得
         current_config_dir = os.path.dirname(os.path.abspath(current_config['config_path']))
         

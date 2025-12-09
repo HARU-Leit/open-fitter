@@ -613,13 +613,13 @@ def process_humanoid_vertex_groups(mesh_obj: bpy.types.Object, clothing_armature
         
         # Condition 5: LeftBreast exists in clothing, breast bones don't exist in clothing, Chest or UpperChest exists in base
         elif (humanoid_name == "LeftBreast" and breast_bones_dont_exist and
-                (base_humanoid_to_bone["Chest"] in existing_groups or base_humanoid_to_bone["UpperChest"] in existing_groups) and
+                (base_humanoid_to_bone.get("Chest") in existing_groups or base_humanoid_to_bone.get("UpperChest") in existing_groups) and
                 "LeftBreast" in base_humanoid_to_bone):
             should_add_optional_humanoid_bone = True
         
         # Condition 5: RightBreast exists in clothing, breast bones don't exist in clothing, Chest or UpperChest exists in base
         elif (humanoid_name == "RightBreast" and breast_bones_dont_exist and
-                (base_humanoid_to_bone["Chest"] in existing_groups or base_humanoid_to_bone["UpperChest"] in existing_groups) and
+                (base_humanoid_to_bone.get("Chest") in existing_groups or base_humanoid_to_bone.get("UpperChest") in existing_groups) and
                 "RightBreast" in base_humanoid_to_bone):
             should_add_optional_humanoid_bone = True
         

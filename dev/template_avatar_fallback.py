@@ -256,10 +256,10 @@ def generate_humanoid_bones_mapping(style: str = "underscore") -> List[Dict[str,
             "boneName": get_preferred_bone_name(humanoid_bone, style)
         })
     
-    # Add UpperChest as optional
+    # Add UpperChest as optional (Template uses dummy bone)
     result.append({
         "humanoidBoneName": "UpperChest",
-        "boneName": "UpperChest"  # Often a dummy bone
+        "boneName": "UpperChest(Dummy)"
     })
     
     return result
@@ -302,7 +302,7 @@ def generate_bone_hierarchy(style: str = "underscore") -> Dict[str, Any]:
     humanoid_to_actual = {}
     for humanoid_bone in CORE_HUMANOID_BONES:
         humanoid_to_actual[humanoid_bone] = get_preferred_bone_name(humanoid_bone, style)
-    humanoid_to_actual["UpperChest"] = "UpperChest"
+    humanoid_to_actual["UpperChest"] = "UpperChest(Dummy)"
     
     # Build hierarchy starting from root (usually armature contains Hips)
     root_name = "Template"  # Root object name

@@ -53,8 +53,8 @@ class _ClothingAvatarContext:
                 pass  # 削除失敗を無視
                 
     def load_avatar_data(self):
-        with open(self.clothing_avatar_data_path, 'r', encoding='utf-8') as f:
-            self.clothing_avatar_data = json.load(f)
+        from io_utils.io_utils import load_avatar_data
+        self.clothing_avatar_data = load_avatar_data(self.clothing_avatar_data_path)
 
     def find_clothing_armature(self):
         for obj in bpy.data.objects:

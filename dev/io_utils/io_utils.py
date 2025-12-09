@@ -235,17 +235,27 @@ def load_mesh_material_data(filepath):
     Args:
         filepath: メッシュマテリアルデータのJSONファイルパス
     """
+    # TODO: この処理はO(faces * polygons)の複雑度があり、非常に遅い
+    # Unity側からの実行時にハングの原因となるため、一時的にスキップ
+    # FBXインポート時にマテリアルは既に設定されているため、多くの場合は不要
+    print("[DEBUG] load_mesh_material_data: Skipped (performance optimization)", flush=True)
+    return
+    
     from algo_utils.search_utils import find_material_index_from_faces
 
     if not filepath or not os.path.exists(filepath):
-        print("[Warning] Mesh material data file not found or not specified")
+        print("[Warning] Mesh material data file not found or not specified", flush=True)
         return
         
     try:
         with open(filepath, 'r') as f:
             data = json.load(f)
-            for mesh_data in data.get('meshMaterials', []):
+            mesh_materials = data.get('meshMaterials', [])
+            print(f"[DEBUG] Processing {len(mesh_materials)} mesh materials...", flush=True)
+            
+            for mesh_idx, mesh_data in enumerate(mesh_materials):
                 mesh_name = mesh_data['meshName']
+                print(f"[DEBUG] Processing mesh {mesh_idx+1}/{len(mesh_materials)}: {mesh_name}", flush=True)
                 
                 # Blenderでメッシュオブジェクトを検索
                 mesh_obj = None
@@ -255,16 +265,19 @@ def load_mesh_material_data(filepath):
                         break
                 
                 if not mesh_obj:
-                    print(f"[Warning] Mesh {mesh_name} not found in Blender scene")
+                    print(f"[Warning] Mesh {mesh_name} not found in Blender scene", flush=True)
                     continue
                 
                 # 各サブメッシュを処理
-                for sub_mesh_idx, sub_mesh_data in enumerate(mesh_data['subMeshes']):
+                sub_meshes = mesh_data['subMeshes']
+                for sub_mesh_idx, sub_mesh_data in enumerate(sub_meshes):
                     material_name = sub_mesh_data['materialName']
                     faces_data = sub_mesh_data['faces']
                     
                     if not faces_data:
                         continue
+                    
+                    print(f"[DEBUG]   SubMesh {sub_mesh_idx+1}/{len(sub_meshes)}: {material_name} ({len(faces_data)} faces)", flush=True)
                         
                     # マテリアルを作成または取得
                     material = bpy.data.materials.get(material_name)
@@ -281,8 +294,11 @@ def load_mesh_material_data(filepath):
                         
                         # 該当するマテリアルスロットを入れ替え
                         mesh_obj.data.materials[material_index] = material
+            
+            print(f"[DEBUG] Mesh material data processing completed", flush=True)
                     
-    except Exception:
+    except Exception as e:
+        print(f"[Warning] Material loading error: {e}", flush=True)
         pass  # マテリアル読み込み失敗を無視
 
 # Merged from load_vertex_group.py

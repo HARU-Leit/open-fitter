@@ -219,6 +219,9 @@ def find_material_index_from_faces(mesh_obj, faces_data):
     """
     from collections import Counter
     
+    # デバッグ: 一時的にスキップしてハング箇所を特定
+    print(f"[DEBUG] find_material_index_from_faces: mesh={mesh_obj.name}, faces={len(faces_data)}, polygons={len(mesh_obj.data.polygons)}", flush=True)
+    
     # オブジェクトモードであることを確認
     bpy.context.view_layer.objects.active = mesh_obj
     if bpy.context.object.mode != 'OBJECT':
@@ -237,7 +240,13 @@ def find_material_index_from_faces(mesh_obj, faces_data):
     # マッチした面のマテリアルインデックスを記録
     matched_material_indices = []
     
-    for face_data in faces_data:
+    total_faces = len(faces_data)
+    progress_interval = max(1, total_faces // 10)  # 10%ごとに出力
+    
+    for face_idx, face_data in enumerate(faces_data):
+        if face_idx % progress_interval == 0:
+            print(f"[DEBUG]   Processing face {face_idx}/{total_faces} ({100*face_idx//total_faces}%)", flush=True)
+        
         # Unity座標をBlender座標に変換
         unity_vertices = face_data['vertices']
         blender_vertices = []

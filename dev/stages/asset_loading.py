@@ -51,13 +51,13 @@ class AssetLoadingStage:
         is_final_pair = (p.pair_index == p.total_pairs - 1)
 
         # ベースBlendファイル読み込み
-        print(f"[DEBUG] Loading base blend file: {p.args.base}")
+        print(f"[DEBUG] Loading base blend file: {p.args.base}", flush=True)
         load_base_file(p.args.base)
-        print(f"[DEBUG] Base blend file loaded successfully")
+        print(f"[DEBUG] Base blend file loaded successfully", flush=True)
         
         # ベースアバター処理（最終pairのみFBXをロード、中間pairはavatar_dataのみ）
         if is_final_pair:
-            print(f"[DEBUG] Final pair: Loading base avatar FBX: {p.config_pair['base_fbx']}")
+            print(f"[DEBUG] Final pair: Loading base avatar FBX: {p.config_pair['base_fbx']}", flush=True)
             (
                 p.base_mesh,
                 p.base_armature,
@@ -66,16 +66,16 @@ class AssetLoadingStage:
                 p.config_pair['base_fbx'],
                 p.config_pair['base_avatar_data'],
             )
-            print(f"[DEBUG] Base avatar FBX loaded successfully")
+            print(f"[DEBUG] Base avatar FBX loaded successfully", flush=True)
         else:
             # 中間pair: avatar_data（JSON）のみロード、FBXインポートはスキップ
             # ウェイト転送は最終pairでのみ行うため、中間pairではbase_meshは不要
-            print(f"[DEBUG] Intermediate pair: Loading avatar data only (skipping base FBX)")
+            print(f"[DEBUG] Intermediate pair: Loading avatar data only (skipping base FBX)", flush=True)
             from io_utils.io_utils import load_avatar_data
             p.base_avatar_data = load_avatar_data(p.config_pair['base_avatar_data'])
             p.base_mesh = None
             p.base_armature = None
-            print(f"[DEBUG] Avatar data loaded successfully")
+            print(f"[DEBUG] Avatar data loaded successfully", flush=True)
 
         # Templateアバターの場合、フォールバックポーズデータを使用
         # (pose_basis_template.jsonは使用不可のため常にフォールバック)
@@ -83,10 +83,10 @@ class AssetLoadingStage:
             # basePoseをフォールバック用の特殊値に設定
             p.base_avatar_data['basePose'] = "__TEMPLATE_FALLBACK__"
             p.base_avatar_data['basePoseA'] = "__TEMPLATE_FALLBACK__"
-            print(f"[DEBUG] Template avatar: using fallback pose data")
+            print(f"[DEBUG] Template avatar: using fallback pose data", flush=True)
 
         # 衣装データ処理
-        print(f"[DEBUG] Loading clothing FBX: {p.config_pair['input_clothing_fbx_path']}")
+        print(f"[DEBUG] Loading clothing FBX: {p.config_pair['input_clothing_fbx_path']}", flush=True)
         (
             p.clothing_meshes,
             p.clothing_armature,
@@ -98,22 +98,33 @@ class AssetLoadingStage:
             p.config_pair['target_meshes'],
             p.config_pair['mesh_renderers'],
         )
-        print(f"[DEBUG] Clothing FBX loaded successfully")
+        print(f"[DEBUG] Clothing FBX loaded successfully", flush=True)
 
         # シェイプキーのリネーム（マッピングがある場合）
         if p.config_pair.get('blend_shape_mappings'):
+            print(f"[DEBUG] Renaming shape keys...", flush=True)
             rename_shape_keys_from_mappings(
                 p.clothing_meshes, p.config_pair['blend_shape_mappings']
             )
+            print(f"[DEBUG] Shape keys renamed", flush=True)
 
         # 長いシェイプキー名を短縮
+        print(f"[DEBUG] Truncating long shape key names...", flush=True)
         truncate_long_shape_key_names(p.clothing_meshes, p.clothing_avatar_data)
+        print(f"[DEBUG] Shape key names truncated", flush=True)
 
         # メタデータ読み込み
+        print(f"[DEBUG] Loading cloth metadata...", flush=True)
         (
             p.cloth_metadata,
             p.vertex_index_mapping,
         ) = load_cloth_metadata(p.args.cloth_metadata)
+        print(f"[DEBUG] Cloth metadata loaded", flush=True)
+        
         # マテリアルデータ読み込み（最初のペアのみ）
         if p.pair_index == 0:
+            print(f"[DEBUG] Loading mesh material data...", flush=True)
             load_mesh_material_data(p.args.mesh_material_data)
+            print(f"[DEBUG] Mesh material data loaded", flush=True)
+        
+        print(f"[DEBUG] AssetLoadingStage completed", flush=True)

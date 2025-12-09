@@ -1,6 +1,13 @@
 import os
 import sys
 
+# 標準出力/エラーのバッファリングを無効化（Unityからの呼び出し時にハングを防止）
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+# stderrをstdoutにリダイレクト（Unity側がstderrを読まない場合のハング防止）
+sys.stderr = sys.stdout
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import argparse
 
@@ -43,8 +50,6 @@ def main():
     try:
         import time
         start_time = time.time()
-
-        sys.stdout.reconfigure(line_buffering=True)
         
         print(f"Status: 初期化中...")
         bpy.ops.preferences.addon_enable(module='robust-weight-transfer')

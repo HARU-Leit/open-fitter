@@ -46,8 +46,8 @@ def is_A_pose(avatar_data: dict, armature: bpy.types.Object, init_pose_filepath=
             apply_initial_pose_to_armature(temp_armature, init_pose_filepath, clothing_avatar_data_filepath)
         
         if pose_filepath and clothing_avatar_data_filepath:
-            with open(clothing_avatar_data_filepath, 'r', encoding='utf-8') as f:
-                clothing_avatar_data = json.load(f)
+            from io_utils.io_utils import load_avatar_data
+            clothing_avatar_data = load_avatar_data(clothing_avatar_data_filepath)
             add_pose_from_json(temp_armature, pose_filepath, clothing_avatar_data, invert=False)
         
         # Create mappings for clothing
