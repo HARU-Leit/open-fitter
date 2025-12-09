@@ -156,6 +156,10 @@ def parse_args():
             if not os.path.isabs(clothing_avatar_data_path):
                 clothing_avatar_data_path = os.path.join(config_dir, clothing_avatar_data_path)
             
+            # Helper to check if path is Template avatar data (allows fallback)
+            def is_template_avatar_path(path):
+                return "avatar_data_template" in os.path.basename(path).lower()
+            
             # Validate avatar data paths
             if not os.path.exists(pose_data_path):
                 print(f"Error: Pose data file not found: {pose_data_path} (from config {config_path})")
@@ -163,10 +167,11 @@ def parse_args():
             if not os.path.exists(field_data_path):
                 print(f"Error: Field data file not found: {field_data_path} (from config {config_path})")
                 sys.exit(1)
-            if not os.path.exists(base_avatar_data_path):
+            # Template avatar data can use fallback if file doesn't exist
+            if not os.path.exists(base_avatar_data_path) and not is_template_avatar_path(base_avatar_data_path):
                 print(f"Error: Base avatar data file not found: {base_avatar_data_path} (from config {config_path})")
                 sys.exit(1)
-            if not os.path.exists(clothing_avatar_data_path):
+            if not os.path.exists(clothing_avatar_data_path) and not is_template_avatar_path(clothing_avatar_data_path):
                 print(f"Error: Clothing avatar data file not found: {clothing_avatar_data_path} (from config {config_path})")
                 sys.exit(1)
             
