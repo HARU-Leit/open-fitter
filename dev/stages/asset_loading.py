@@ -51,9 +51,13 @@ class AssetLoadingStage:
         is_final_pair = (p.pair_index == p.total_pairs - 1)
 
         # ベースBlendファイル読み込み
+        print(f"[DEBUG] Loading base blend file: {p.args.base}")
         load_base_file(p.args.base)
+        print(f"[DEBUG] Base blend file loaded successfully")
+        
         # ベースアバター処理（最終pairのみFBXをロード、中間pairはavatar_dataのみ）
         if is_final_pair:
+            print(f"[DEBUG] Final pair: Loading base avatar FBX: {p.config_pair['base_fbx']}")
             (
                 p.base_mesh,
                 p.base_armature,
@@ -62,15 +66,28 @@ class AssetLoadingStage:
                 p.config_pair['base_fbx'],
                 p.config_pair['base_avatar_data'],
             )
+            print(f"[DEBUG] Base avatar FBX loaded successfully")
         else:
             # 中間pair: avatar_data（JSON）のみロード、FBXインポートはスキップ
             # ウェイト転送は最終pairでのみ行うため、中間pairではbase_meshは不要
+            print(f"[DEBUG] Intermediate pair: Loading avatar data only (skipping base FBX)")
             from io_utils.io_utils import load_avatar_data
             p.base_avatar_data = load_avatar_data(p.config_pair['base_avatar_data'])
             p.base_mesh = None
             p.base_armature = None
+            print(f"[DEBUG] Avatar data loaded successfully")
+
+        # Templateアバターの場合、フォールバックポーズデータを使用
+        # (pose_basis_template.jsonはプロプライエタリファイルで存在しないため)
+        if p.base_avatar_data.get("name", None) == "Template":
+            # basePoseをフォールバック用の特殊値に設定
+            # （実際のポーズ適用時にtemplate_pose_fallbackモジュールを使用）
+            p.base_avatar_data['basePose'] = "__TEMPLATE_FALLBACK__"
+            p.base_avatar_data['basePoseA'] = "__TEMPLATE_FALLBACK__"
+            print(f"[DEBUG] Template avatar detected: using fallback pose data")
 
         # 衣装データ処理
+        print(f"[DEBUG] Loading clothing FBX: {p.config_pair['input_clothing_fbx_path']}")
         (
             p.clothing_meshes,
             p.clothing_armature,
@@ -82,6 +99,7 @@ class AssetLoadingStage:
             p.config_pair['target_meshes'],
             p.config_pair['mesh_renderers'],
         )
+        print(f"[DEBUG] Clothing FBX loaded successfully")
 
         # シェイプキーのリネーム（マッピングがある場合）
         if p.config_pair.get('blend_shape_mappings'):

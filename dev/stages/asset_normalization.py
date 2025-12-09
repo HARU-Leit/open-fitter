@@ -80,16 +80,29 @@ class AssetNormalizationStage:
                 base_pose_filepath
                 and p.config_pair.get('do_not_use_base_pose', 0) == 0
             ):
-                pose_dir = os.path.dirname(
-                    os.path.abspath(p.config_pair['base_avatar_data'])
-                )
-                base_pose_filepath = os.path.join(pose_dir, base_pose_filepath)
-                add_pose_from_json(
-                    p.base_armature,
-                    base_pose_filepath,
-                    p.base_avatar_data,
-                    invert=False,
-                )
+                # __TEMPLATE_FALLBACK__はフォールバックポーズを使用
+                if base_pose_filepath == "__TEMPLATE_FALLBACK__":
+                    add_pose_from_json(
+                        p.base_armature,
+                        base_pose_filepath,
+                        p.base_avatar_data,
+                        invert=False,
+                    )
+                else:
+                    pose_dir = os.path.dirname(
+                        os.path.abspath(p.config_pair['base_avatar_data'])
+                    )
+                    base_pose_filepath = os.path.join(pose_dir, base_pose_filepath)
+                    # フォールバック: ファイルが存在しない場合はスキップ
+                    if os.path.exists(base_pose_filepath):
+                        add_pose_from_json(
+                            p.base_armature,
+                            base_pose_filepath,
+                            p.base_avatar_data,
+                            invert=False,
+                        )
+                    else:
+                        print(f"Warning: Base pose file not found, skipping: {base_pose_filepath}")
         # 中間pairではbase_armatureがNoneのためスキップ
         # ウェイト転送セットアップ（最終pairのみ - Body.BaseAvatarが必要）
         if is_final_pair:

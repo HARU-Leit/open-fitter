@@ -51,10 +51,16 @@ class BoneReplacementStage:
         if p.config_pair.get('do_not_use_base_pose', 0) == 0:
             base_pose_filepath = p.base_avatar_data.get('basePose', None)
             if base_pose_filepath:
-                pose_dir = os.path.dirname(
-                    os.path.abspath(p.config_pair['base_avatar_data'])
-                )
-                base_pose_filepath = os.path.join(pose_dir, base_pose_filepath)
+                # __TEMPLATE_FALLBACK__はそのまま使用
+                if base_pose_filepath != "__TEMPLATE_FALLBACK__":
+                    pose_dir = os.path.dirname(
+                        os.path.abspath(p.config_pair['base_avatar_data'])
+                    )
+                    base_pose_filepath = os.path.join(pose_dir, base_pose_filepath)
+                    # フォールバック: ファイルが存在しない場合はNoneにリセット
+                    if not os.path.exists(base_pose_filepath):
+                        print(f"Warning: Base pose file not found, skipping pose application: {base_pose_filepath}")
+                        base_pose_filepath = None
 
         # ヒューマノイドボーン置換（最終pairのみ）
         if p.pair_index == 0:

@@ -16,7 +16,7 @@ def add_pose_from_json(armature_obj, filepath, avatar_data, invert=False):
     
     Parameters:
         armature_obj: アーマチュアオブジェクト
-        filepath (str): 読み込むJSONファイルのパス
+        filepath (str): 読み込むJSONファイルのパス、または"__TEMPLATE_FALLBACK__"
         avatar_data (dict): アバターデータ
         invert (bool): 逆変換を適用するかどうか
     """
@@ -30,13 +30,19 @@ def add_pose_from_json(armature_obj, filepath, avatar_data, invert=False):
     # 階層関係と変換マップを取得
     bone_parents, humanoid_to_bone, bone_to_humanoid = get_humanoid_bone_hierarchy(avatar_data)
     
-    # ファイルの存在確認
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"Pose data file not found: {filepath}")
-    
-    # JSONファイルを読み込む
-    with open(filepath, 'r', encoding='utf-8') as f:
-        pose_data = json.load(f)
+    # Templateアバター用フォールバックポーズデータの使用
+    if filepath == "__TEMPLATE_FALLBACK__":
+        from template_pose_fallback import get_template_fallback_pose
+        pose_data = get_template_fallback_pose()
+        print(f"[DEBUG] Using Template fallback pose data")
+    else:
+        # ファイルの存在確認
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Pose data file not found: {filepath}")
+        
+        # JSONファイルを読み込む
+        with open(filepath, 'r', encoding='utf-8') as f:
+            pose_data = json.load(f)
     
     # アンドゥ用にステップを作成
     bpy.ops.ed.undo_push(message="Add Pose from JSON")

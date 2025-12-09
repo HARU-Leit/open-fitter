@@ -169,7 +169,9 @@ class _ReplaceHumanoidBonesContext:
     # =========================================================================
     def apply_initial_pose(self):
         """Apply initial pose to clothing armature if base_pose_filepath is provided."""
-        if self.base_pose_filepath:
+        if self.base_pose_filepath and (
+            self.base_pose_filepath == "__TEMPLATE_FALLBACK__" or os.path.exists(self.base_pose_filepath)
+        ):
             add_pose_from_json(
                 self.clothing_armature, self.base_pose_filepath, self.clothing_avatar_data, invert=True
             )
@@ -249,7 +251,9 @@ class _ReplaceHumanoidBonesContext:
     # =========================================================================
     def apply_final_pose(self):
         """Apply final pose transformations if base_pose_filepath is provided."""
-        if self.base_pose_filepath:
+        if self.base_pose_filepath and (
+            self.base_pose_filepath == "__TEMPLATE_FALLBACK__" or os.path.exists(self.base_pose_filepath)
+        ):
             add_pose_from_json(
                 self.clothing_armature, self.base_pose_filepath, self.base_avatar_data, invert=False
             )

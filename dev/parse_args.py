@@ -61,10 +61,20 @@ def parse_args():
             print(f"Error: File not found: {path}")
             sys.exit(1)
     
-    # Validate all base-fbx files exist
-    for path in base_fbx_paths:
-        if not os.path.exists(path):
-            print(f"Error: Base FBX file not found: {path}")
+    # Validate base-fbx files:
+    # - If only 1 config pair: validate the single base_fbx
+    # - If multiple config pairs: only validate the last base_fbx (intermediate ones will be set to None)
+    # 中間pairのbase_fbxはNoneに設定されるため、複数pairの場合は最後のbase_fbxのみ存在チェックを行う
+    if len(base_fbx_paths) == 1:
+        # Single config pair: validate the base_fbx
+        if not os.path.exists(base_fbx_paths[0]):
+            print(f"Error: Base FBX file not found: {base_fbx_paths[0]}")
+            sys.exit(1)
+    elif len(base_fbx_paths) >= 2:
+        # Multiple config pairs: only validate the last base_fbx
+        last_base_fbx = base_fbx_paths[-1]
+        if not os.path.exists(last_base_fbx):
+            print(f"Error: Base FBX file not found: {last_base_fbx}")
             sys.exit(1)
     
     # Validate all config files exist
