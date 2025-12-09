@@ -42,6 +42,16 @@ def parse_args():
         
     args = parser.parse_args(argv[argv.index("--") + 1:])
     
+    # Fallback markers - paths starting with these are not validated
+    # Template.fbx, pose_basis_template.json, avatar_data_template.json use fallback
+    def is_fallback_marker(path):
+        """Check if path is a fallback marker (not a real file path)."""
+        if not path:
+            return False
+        markers = ['UNUSED', 'FALLBACK', 'NONE', 'SKIP', '__']
+        upper_path = path.upper()
+        return any(upper_path.startswith(m) or m in upper_path for m in markers)
+    
     # Parse semicolon-separated base-fbx and config paths
     base_fbx_paths = [path.strip() for path in args.base_fbx.split(';')]
     config_paths = [path.strip() for path in args.config.split(';')]
@@ -62,18 +72,18 @@ def parse_args():
             sys.exit(1)
     
     # Validate base-fbx files:
-    # - If only 1 config pair: validate the single base_fbx
-    # - If multiple config pairs: only validate the last base_fbx (intermediate ones will be set to None)
-    # 中間pairのbase_fbxはNoneに設定されるため、複数pairの場合は最後のbase_fbxのみ存在チェックを行う
+    # - Fallback markers (UNUSED_TEMPLATE, etc.) are allowed without validation
+    # - If only 1 config pair: validate the single base_fbx (unless fallback marker)
+    # - If multiple config pairs: only validate the last base_fbx (intermediate ones use fallback)
     if len(base_fbx_paths) == 1:
-        # Single config pair: validate the base_fbx
-        if not os.path.exists(base_fbx_paths[0]):
+        # Single config pair: validate the base_fbx unless it's a fallback marker
+        if not is_fallback_marker(base_fbx_paths[0]) and not os.path.exists(base_fbx_paths[0]):
             print(f"Error: Base FBX file not found: {base_fbx_paths[0]}")
             sys.exit(1)
     elif len(base_fbx_paths) >= 2:
         # Multiple config pairs: only validate the last base_fbx
         last_base_fbx = base_fbx_paths[-1]
-        if not os.path.exists(last_base_fbx):
+        if not is_fallback_marker(last_base_fbx) and not os.path.exists(last_base_fbx):
             print(f"Error: Base FBX file not found: {last_base_fbx}")
             sys.exit(1)
     
@@ -160,18 +170,18 @@ def parse_args():
             def is_template_avatar_path(path):
                 return "avatar_data_template" in os.path.basename(path).lower()
             
-            # Validate avatar data paths
-            if not os.path.exists(pose_data_path):
+            # Validate data file paths (fallback markers and Template paths skip validation)
+            if not is_fallback_marker(pose_data_path) and not os.path.exists(pose_data_path):
                 print(f"Error: Pose data file not found: {pose_data_path} (from config {config_path})")
                 sys.exit(1)
-            if not os.path.exists(field_data_path):
+            if not is_fallback_marker(field_data_path) and not os.path.exists(field_data_path):
                 print(f"Error: Field data file not found: {field_data_path} (from config {config_path})")
                 sys.exit(1)
-            # Template avatar data can use fallback if file doesn't exist
-            if not os.path.exists(base_avatar_data_path) and not is_template_avatar_path(base_avatar_data_path):
+            # Template avatar data uses fallback generation
+            if not is_fallback_marker(base_avatar_data_path) and not is_template_avatar_path(base_avatar_data_path) and not os.path.exists(base_avatar_data_path):
                 print(f"Error: Base avatar data file not found: {base_avatar_data_path} (from config {config_path})")
                 sys.exit(1)
-            if not os.path.exists(clothing_avatar_data_path) and not is_template_avatar_path(clothing_avatar_data_path):
+            if not is_fallback_marker(clothing_avatar_data_path) and not is_template_avatar_path(clothing_avatar_data_path) and not os.path.exists(clothing_avatar_data_path):
                 print(f"Error: Clothing avatar data file not found: {clothing_avatar_data_path} (from config {config_path})")
                 sys.exit(1)
             
